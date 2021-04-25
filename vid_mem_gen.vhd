@@ -29,7 +29,8 @@ architecture rtl of vid_mem_gen is
 
     type rgb_vector_t is array(4 downto 0) of rgb_t;
 
-    signal pixel_addr           : integer;
+    signal x                    : integer range 0 to MAX_H-1;
+    signal y                    : integer range 0 to MAX_V-1;
     signal addr                 : integer;
 
     signal req_tvalid           : std_logic;
@@ -100,19 +101,19 @@ begin
         if rising_edge(clk) then
             if (resetn = '0') then
                 req_tvalid <= '0';
-
-                pixel_addr <= 0;
                 pixel_tvalid <= '0';
                 pixel_tlast <= '0';
+                x <= 0;
+                y <= 0;
             else
 
                 if (start_cnt(3) = '1') then
                     req_tvalid <= '1';
-                elsif (req_tvalid = '1' and req_tready = '1' and pixel_addr = MAX_H*MAX_V-1) then
+                elsif (req_tvalid = '1' and req_tready = '1' and x = MAX_H-1 and y = MAX_V-1) then
                     req_tvalid <= '0';
                 end if;
 
-                if req_tvalid = '1' and req_tready = '1' and pixel_addr = MAX_H*MAX_V-1 then
+                if req_tvalid = '1' and req_tready = '1' and x = MAX_H-1 and y = MAX_V-1 then
                     pixel_tlast <= '1';
                 elsif req_tready = '1' then
                     pixel_tlast <= '0';
@@ -125,15 +126,35 @@ begin
                 end if;
 
                 if (req_tvalid = '1' and req_tready = '1') then
-                    pixel_addr <= pixel_addr + 1;
+                    if (x = MAX_H-1) then
+                        x <= 0;
+                    else
+                        x <= x + 1;
+                    end if;
+                end if;
+
+                if (req_tvalid = '1' and req_tready = '1') then
+                    if (x = MAX_H-1) then
+                        if (y = MAX_V-1) then
+                            y <= 0;
+                        else
+                            y <= y + 1;
+                        end if;
+                    end if;
                 end if;
 
             end if;
 
             if (req_tvalid = '1' and req_tready = '1') then
-                pixel_tdata(R) <= x"00";
-                pixel_tdata(G) <= x"FF";
-                pixel_tdata(B) <= x"AA";
+                if (x = 0 or y = 0 or x = MAX_H-1 or y = MAX_V-1) then
+                    pixel_tdata(R) <= x"FF";
+                    pixel_tdata(G) <= x"FF";
+                    pixel_tdata(B) <= x"FF";
+                else
+                    pixel_tdata(R) <= x"00";
+                    pixel_tdata(G) <= x"00";
+                    pixel_tdata(B) <= x"AA";
+                end if;
             end if;
 
         end if;
