@@ -54,6 +54,7 @@ end entity;
 architecture rtl of ddr2_interconnect is
 
     type ch_t is (RD_CH, WR_CH);
+    type cmd_t is (RD_CMD, WR_CMD);
 
     signal ch : ch_t;
 
@@ -61,41 +62,76 @@ architecture rtl of ddr2_interconnect is
     signal ddr_s_tready : std_logic;
     signal ddr_s_tlast  : std_logic;
     signal ddr_s_tdata  : std_logic_vector(127 downto 0);
-    signal ddr_s_tcmd   : std_logic;
+    signal ddr_s_tcmd   : cmd_t;
     signal ddr_s_taddr  : std_logic_vector(25 downto 0);
-
-    signal wr_fifo_cnt  : integer range 0 to 63;
 
     signal cmd_tvalid   : std_logic;
     signal cmd_tready   : std_logic;
-    signal cmd_addr     : integer range 0 to 67108863; --0..2^26-1
+    signal cmd_addr     : std_logic_vector(25 downto 0);
 
+    signal wr_tvalid    : std_logic;
+    signal wr_tready    : std_logic;
+    signal wr_tfirst    : std_logic;
+
+    signal rd_tvalid    : std_logic;
+    signal rd_tready    : std_logic;
+    signal rd_tfirst    : std_logic;
 begin
     cmd_en          <= cmd_tvalid;
     cmd_bl          <= "111111";
     cmd_tready      <= '1' when cmd_full = '0' else '0';
-    cmd_byte_addr   <= std_logic_vector(to_unsigned(cmd_addr, 26)) & x"0";
+    cmd_byte_addr   <= cmd_addr & x"0";
 
-    wr_en           <= '1' when ddr_s_tvalid = '1' and ddr_s_tcmd = '0' else '1';
+    wr_en           <= '1' when ddr_s_tvalid = '1' and ddr_s_tcmd = WR_CMD else '0';
     ddr_s_tready    <= '1' when wr_full = '0' else '0';
-    wr_data         <= to_slv(ddr_s_tdata);
+    wr_data         <= ddr_s_tdata;
     wr_mask         <= x"0000";
 
     rd_en           <= '0';
 
-    rd_s_tready     <= '1' when ddr_s_tvalid ='0' or (ddr_s_tvalid = '1' and ddr_s_tready = '1' and ch = RD_CH) else '0';
-    wr_s_tready     <= '1' when ddr_s_tvalid ='0' or (ddr_s_tvalid = '1' and ddr_s_tready = '1' and ch = WR_CH) else '0';
+    rd_tvalid       <= '1' when rd_s_tvalid = '1' and ch = RD_CH else '0';
+    rd_tready       <= '1' when ch = RD_CH and (ddr_s_tvalid ='0' or (ddr_s_tvalid = '1' and ddr_s_tready = '1')) else '0';
+
+    wr_tvalid       <= '1' when wr_s_tvalid = '1' and ch = WR_CH else '0';
+    wr_tready       <= '1' when ch = WR_CH and (ddr_s_tvalid ='0' or (ddr_s_tvalid = '1' and ddr_s_tready = '1')) else '0';
+
+    rd_s_tready     <= rd_tready;
+    wr_s_tready     <= wr_tready;
 
     ch_monitor : process (clk)
     begin
         if rising_edge(clk) then
             if resetn = '0' then
                 ch <= RD_CH;
+                wr_tfirst <= '1';
+                rd_tfirst <= '1';
             else
-                if (rd_s_tvalid = '1' and rd_s_tready = '1' and rd_s_tlast = '1' and ch = RD_CH) then
+                if rd_tvalid = '1' and rd_tready = '1' then
+                    if (rd_s_tlast = '1') then
+                        rd_tfirst <= '1';
+                    else
+                        rd_tfirst <= '0';
+                    end if;
+                end if;
+
+                if wr_tvalid = '1' and wr_tready = '1' then
+                    if (wr_s_tlast = '1') then
+                        wr_tfirst <= '1';
+                    else
+                        wr_tfirst <= '0';
+                    end if;
+                end if;
+
+                if (rd_tvalid = '1' and rd_tready = '1' and rd_s_tlast = '1' and ch = RD_CH) then
                     ch  <= WR_CH;
-                elsif (wr_s_tvalid = '1' and wr_s_tready = '1' and wr_s_tlast = '1' and ch = WR_CH) then
+                elsif (wr_tvalid = '1' and wr_tready = '1' and wr_s_tlast = '1' and ch = WR_CH) then
                     ch <= RD_CH;
+                elsif (rd_tfirst = '1' and wr_tfirst = '1') then
+                    if (ch = RD_CH and rd_tvalid = '0') then
+                        ch <= WR_CH;
+                    elsif (ch = WR_CH and wr_tvalid = '0') then
+                        ch <= RD_CH;
+                    end if;
                 end if;
             end if;
         end if;
@@ -106,42 +142,30 @@ begin
         if rising_edge(clk) then
             if resetn = '0' then
                 ddr_s_tvalid <= '0';
-                ddr_s_tcmd <= '0';
+                ddr_s_tcmd <= WR_CMD;
                 ddr_s_tlast <= '0';
-                wr_fifo_cnt <= 0;
             else
-                if rd_s_tvalid = '1' and rd_s_tready = '1' and ch = RD_CH then
+                if rd_tvalid = '1' and rd_tready = '1' and ch = RD_CH then
                     ddr_s_tvalid <= '1';
-                elsif wr_s_tvalid = '1' and wr_s_tready = '1' = and ch = WR_CH then
+                elsif wr_tvalid = '1' and wr_tready = '1' and ch = WR_CH then
                     ddr_s_tvalid <= '1';
                 elsif ddr_s_tready = '1' then
                     ddr_s_tvalid <= '0';
                 end if;
 
-                if rd_s_tvalid = '1' and rd_s_tready = '1' and ch = RD_CH then
-                    ddr_s_tcmd <= '0';
+                if rd_tvalid = '1' and rd_tready = '1' and ch = RD_CH then
+                    ddr_s_tcmd <= RD_CMD;
                     ddr_s_tlast <= rd_s_tlast;
-                elsif wr_s_tvalid = '1' and wr_s_tready = '1' and ch = WR_CH then
-                    ddr_s_tcmd <= '1';
-                    if (wr_fifo_cnt = 63) then
-                        ddr_s_tlast <= '1';
-                    else
-                        ddr_s_tlast <= wr_s_tlast;
-                    end if;
-                end if;
-
-                if (wr_s_tvalid = '1' and wr_s_tready = '1' and ch = WR_CH) then
-                    if (wr_fifo_cnt = 63) then
-                        wr_fifo_cnt <= 0;
-                    else
-                        wr_fifo_cnt <= wr_fifo_cnt + 1;
-                    end if;
+                elsif wr_tvalid = '1' and wr_tready = '1' and ch = WR_CH then
+                    ddr_s_tcmd <= WR_CMD;
+                    ddr_s_tlast <= wr_s_tlast;
                 end if;
 
             end if;
 
-            if wr_s_tvalid = '1' and wr_s_tready = '1' = and ch = WR_CH then
+            if wr_tvalid = '1' and wr_tready = '1' and ch = WR_CH then
                 ddr_s_tdata <= wr_s_tdata;
+                ddr_s_taddr <= wr_s_taddr;
             end if;
 
         end if;
@@ -152,7 +176,7 @@ begin
         if rising_edge(clk) then
             if resetn = '0' then
                 cmd_tvalid <= '0';
-                cmd_addr <= 0;
+                cmd_addr <= (others => '0') ;
                 cmd_instr <= "000";
             else
 
@@ -163,7 +187,7 @@ begin
                 end if;
 
                 if ddr_s_tvalid = '1' and ddr_s_tready = '1' and ddr_s_tlast = '1' then
-                    if (ddr_s_tcmd = '0') then
+                    if (ddr_s_tcmd = WR_CMD) then
                         cmd_instr <= "000";
                     else
                         cmd_instr <= "001";

@@ -147,13 +147,42 @@ architecture Behavioral of top is
             clk                         : in std_logic;
             resetn                      : in std_logic;
 
+            wr_m_tvalid                 : out std_logic;
+            wr_m_tready                 : in std_logic;
+            wr_m_tlast                  : out std_logic;
+            wr_m_tdata                  : out std_logic_vector(127 downto 0);
+            wr_m_taddr                  : out std_logic_vector(25 downto 0)
+        );
+    end component;
+
+    component ddr2_interconnect is
+        port (
+            clk                         : in std_logic;
+            resetn                      : in std_logic;
+            --rd channel
+            rd_s_tvalid                 : in std_logic;
+            rd_s_tready                 : out std_logic;
+            rd_s_tlast                  : in std_logic;
+            rs_s_taddr                  : in std_logic_vector(25 downto 0);
+            --wr channel
+            wr_s_tvalid                 : in std_logic;
+            wr_s_tready                 : out std_logic;
+            wr_s_tlast                  : in std_logic;
+            wr_s_tdata                  : in std_logic_vector(127 downto 0);
+            wr_s_taddr                  : in std_logic_vector(25 downto 0);
+            --read back channel
+            rd_m_tvalid                 : out std_logic;
+            rd_m_tready                 : in std_logic;
+            rd_m_tlast                  : out std_logic;
+            rd_m_tdata                  : out std_logic_vector(25 downto 0);
+            --DDR interface
             cmd_en                      : out std_logic;
             cmd_instr                   : out std_logic_vector(2 downto 0);
             cmd_bl                      : out std_logic_vector(5 downto 0);
             cmd_byte_addr               : out std_logic_vector(29 downto 0);
             cmd_empty                   : in  std_logic;
             cmd_full                    : in  std_logic;
-
+            -- -- WR interface
             wr_en                       : out std_logic;
             wr_mask                     : out std_logic_vector(16 - 1 downto 0);
             wr_data                     : out std_logic_vector(128 - 1 downto 0);
@@ -165,6 +194,7 @@ architecture Behavioral of top is
 
             rd_en                       : out std_logic
         );
+
     end component;
 
     --Local signals
@@ -202,7 +232,13 @@ architecture Behavioral of top is
 
     signal uart_rx_buf                  : std_logic_vector(2 downto 0);
 
-    signal sw_buf : std_logic_vector(7 downto 0);
+    signal vid_gen_wr_tvalid            : std_logic;
+    signal vid_gen_wr_tready            : std_logic;
+    signal vid_gen_wr_tlast             : std_logic;
+    signal vid_gen_wr_tdata             : std_logic_vector(127 downto 0);
+    signal vid_gen_wr_taddr             : std_logic_vector(25 downto 0);
+
+    signal sw_buf                       : std_logic_vector(7 downto 0);
 
 begin
 
@@ -282,6 +318,34 @@ begin
     vid_mem_gen_inst: vid_mem_gen port map (
         clk                 => mem_clk,
         resetn              => mem_calib_done,
+
+        wr_m_tvalid         => vid_gen_wr_tvalid,
+        wr_m_tready         => vid_gen_wr_tready,
+        wr_m_tlast          => vid_gen_wr_tlast,
+        wr_m_tdata          => vid_gen_wr_tdata,
+        wr_m_taddr          => vid_gen_wr_taddr
+
+    );
+
+    ddr2_interconnect_inst: ddr2_interconnect port map (
+        clk                 => mem_clk,
+        resetn              => mem_calib_done,
+
+        rd_s_tvalid         => '0',
+        rd_s_tready         => open,
+        rd_s_tlast          => '0',
+        rs_s_taddr          => (others => '0') ,
+
+        wr_s_tvalid         => vid_gen_wr_tvalid,
+        wr_s_tready         => vid_gen_wr_tready,
+        wr_s_tlast          => vid_gen_wr_tlast,
+        wr_s_tdata          => vid_gen_wr_tdata,
+        wr_s_taddr          => vid_gen_wr_taddr,
+
+        rd_m_tvalid         => open,
+        rd_m_tready         => '1',
+        rd_m_tlast          => open,
+        rd_m_tdata          => open,
 
         cmd_en              => mem_cmd_en,
         cmd_instr           => mem_cmd_instr,

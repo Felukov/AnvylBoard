@@ -6,32 +6,14 @@ use UNISIM.VComponents.all;
 
 entity vid_mem_gen is
     port (
-        clk                   : in std_logic;
-        resetn                : in std_logic;
-        --DDR interface
-        cmd_en                : out std_logic;
-        cmd_instr             : out std_logic_vector(2 downto 0);
-        cmd_bl                : out std_logic_vector(5 downto 0);
-        cmd_byte_addr         : out std_logic_vector(29 downto 0);
-        cmd_empty             : in  std_logic;
-        cmd_full              : in  std_logic;
-        -- -- WR interface
-        wr_en                 : out std_logic;
-        wr_mask               : out std_logic_vector(16 - 1 downto 0);
-        wr_data               : out std_logic_vector(128 - 1 downto 0);
-        wr_full               : in  std_logic;
-        wr_empty              : in  std_logic;
-        wr_count              : in  std_logic_vector(6 downto 0);
-        wr_underrun           : in  std_logic;
-        wr_error              : in  std_logic;
-        -- -- RD interface
-        rd_en                 : out std_logic
-        -- rd_data               : in  std_logic_vector(128 - 1 downto 0);
-        -- rd_full               : in  std_logic;
-        -- rd_empty              : in  std_logic;
-        -- rd_count              : in  std_logic_vector(6 downto 0);
-        -- rd_overflow           : in  std_logic;
-        -- rd_error              : in  std_logic
+        clk                     : in std_logic;
+        resetn                  : in std_logic;
+
+        wr_m_tvalid             : out std_logic;
+        wr_m_tready             : in std_logic;
+        wr_m_tlast              : out std_logic;
+        wr_m_tdata              : out std_logic_vector(127 downto 0);
+        wr_m_taddr              : out std_logic_vector(25 downto 0)
     );
 
 end entity;
@@ -60,6 +42,7 @@ architecture rtl of vid_mem_gen is
 
     signal ddr_data_tvalid      : std_logic;
     signal ddr_data_tready      : std_logic;
+    signal ddr_data_tlast       : std_logic;
     signal ddr_data_tdata       : rgb_vector_t;
     signal pixel_idx            : integer range 0 to 4;
 
@@ -67,12 +50,10 @@ architecture rtl of vid_mem_gen is
 
     signal wr_tvalid            : std_logic;
     signal wr_tready            : std_logic;
+    signal wr_tlast             : std_logic;
     signal wr_tdata             : rgb_vector_t;
+    signal wr_taddr             : integer range 0 to 2**26-1;
     signal wr_fifo_cnt          : integer range 0 to 63;
-
-    signal cmd_tvalid           : std_logic;
-    signal cmd_tready           : std_logic;
-    signal cmd_addr             : integer range 0 to 67108863; --0..2^26-1
 
     function to_slv(rgb_vec : rgb_vector_t) return std_logic_vector is
         variable slv : std_logic_vector(127 downto 0);
@@ -93,22 +74,15 @@ architecture rtl of vid_mem_gen is
 
 begin
 
-    cmd_en <= cmd_tvalid;
-    cmd_tready <= '1' when cmd_full = '0' else '0';
-    cmd_instr <= "000";
-    cmd_bl <= "111111";
-    cmd_byte_addr <= std_logic_vector(to_unsigned(cmd_addr, 26)) & x"0";
-
-    rd_en <= '0';
-
-    wr_en <= wr_tvalid;
-    wr_tready <= '1' when wr_full = '0' else '0';
-    wr_data <= to_slv(wr_tdata);
-    wr_mask <= x"0000";
+    wr_m_tvalid     <= wr_tvalid;
+    wr_tready       <= wr_m_tready;
+    wr_m_tlast      <= wr_tlast;
+    wr_m_tdata      <= to_slv(wr_tdata);
+    wr_m_taddr      <= std_logic_vector(to_unsigned(wr_taddr, 26));
 
     ddr_data_tready <= '1' when (wr_tready = '1') else '0';
-    pixel_tready <= '1' when ddr_data_tvalid = '0' or (ddr_data_tvalid = '1' and ddr_data_tready = '1') else '0';
-    req_tready <= '1' when req_tvalid = '1' and pixel_tready = '1' else '0';
+    pixel_tready    <= '1' when ddr_data_tvalid = '0' or (ddr_data_tvalid = '1' and ddr_data_tready = '1') else '0';
+    req_tready      <= '1' when req_tvalid = '1' and pixel_tready = '1' else '0';
 
     start_cnt_process: process (clk)
     begin
@@ -171,6 +145,7 @@ begin
             if resetn = '0' then
                 pixel_idx <= 0;
                 ddr_data_tvalid <= '0';
+                ddr_data_tlast <= '0';
             else
 
                 if (pixel_tvalid = '1' and pixel_tready = '1') then
@@ -179,6 +154,10 @@ begin
                     else
                         pixel_idx <= pixel_idx + 1;
                     end if;
+                end if;
+
+                if (pixel_tvalid = '1' and pixel_tready = '1') then
+                    ddr_data_tlast <= pixel_tlast;
                 end if;
 
                 if (pixel_tvalid = '1' and pixel_tready = '1' and pixel_idx = 4) then
@@ -201,6 +180,8 @@ begin
             if resetn = '0' then
                 wr_tvalid <= '0';
                 wr_fifo_cnt <= 0;
+                wr_taddr <= 0;
+                wr_tlast <= '0';
             else
                 if (ddr_data_tvalid = '1' and ddr_data_tready = '1') then
                     wr_tvalid <= '1';
@@ -210,10 +191,22 @@ begin
 
                 if (ddr_data_tvalid = '1' and ddr_data_tready = '1') then
                     if (wr_fifo_cnt = 63) then
+                        wr_tlast <= '1';
+                    else
+                        wr_tlast <= ddr_data_tlast;
+                    end if;
+                end if;
+
+                if (ddr_data_tvalid = '1' and ddr_data_tready = '1') then
+                    if (wr_fifo_cnt = 63) then
                         wr_fifo_cnt <= 0;
                     else
                         wr_fifo_cnt <= wr_fifo_cnt + 1;
                     end if;
+                end if;
+
+                if (ddr_data_tvalid = '1' and ddr_data_tready = '1' and wr_fifo_cnt = 63) then
+                    wr_taddr <= wr_taddr + 1;
                 end if;
             end if;
 
@@ -221,26 +214,6 @@ begin
                 wr_tdata <= ddr_data_tdata;
             end if;
 
-        end if;
-    end process;
-
-    writing_data_to_cmd: process (clk)
-    begin
-        if rising_edge(clk) then
-            if resetn = '0' then
-                cmd_tvalid <= '0';
-                cmd_addr <= 0;
-            else
-                if (ddr_data_tvalid = '1' and ddr_data_tready = '1' and wr_fifo_cnt = 63) then
-                    cmd_tvalid <= '1';
-                elsif (cmd_tready = '1') then
-                    cmd_tvalid <= '0';
-                end if;
-
-                if cmd_tvalid = '1' and cmd_tready = '1' then
-                    cmd_addr <= cmd_addr + 1;
-                end if;
-            end if;
         end if;
     end process;
 
