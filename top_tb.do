@@ -43,6 +43,7 @@ vcom -explicit  -93 "memc3_infrastructure.vhd"
 vcom -explicit  -93 "memc3_wrapper.vhd"
 vcom -explicit  -93 "ddr2_interconnect.vhd"
 vcom -explicit  -93 "vid_mem_gen.vhd"
+vcom -explicit  -93 "tft_ddr2_reader.vhd"
 vcom -explicit  -93 "tft_video_timing_gen.vhd"
 vcom -explicit  -93 "tft.vhd"
 vcom -explicit  -93 "pwm.vhd"
@@ -60,7 +61,8 @@ vsim -t ps +notimingchecks -L unisim -L secureip work.top_tb glbl
 #vsim -novopt -t ps +notimingchecks -L unisim -L secureip work.top_tb glbl
 
 #add wave -position insertpoint sim:/top_tb/uut/vid_mem_gen_inst/*
-add wave -position insertpoint sim:/top_tb/uut/ddr2_interconnect_inst/*
+#add wave -position insertpoint sim:/top_tb/uut/ddr2_interconnect_inst/*
+do T:/Projects/AnvylBoard/wave.do
 #
 # Run simulation for this time
 #

@@ -12,7 +12,7 @@ entity ddr2_interconnect is
         rd_s_tvalid             : in std_logic;
         rd_s_tready             : out std_logic;
         rd_s_tlast              : in std_logic;
-        rs_s_taddr              : in std_logic_vector(25 downto 0);
+        rd_s_taddr              : in std_logic_vector(25 downto 0);
         --wr channel
         wr_s_tvalid             : in std_logic;
         wr_s_tready             : out std_logic;
@@ -41,13 +41,13 @@ entity ddr2_interconnect is
         wr_underrun             : in  std_logic;
         wr_error                : in  std_logic;
         -- -- RD interface
-        rd_en                   : out std_logic
-        -- rd_data               : in  std_logic_vector(128 - 1 downto 0);
-        -- rd_full               : in  std_logic;
-        -- rd_empty              : in  std_logic;
-        -- rd_count              : in  std_logic_vector(6 downto 0);
-        -- rd_overflow           : in  std_logic;
-        -- rd_error              : in  std_logic
+        rd_en                   : out std_logic;
+        rd_data                 : in  std_logic_vector(128 - 1 downto 0);
+        rd_full                 : in  std_logic;
+        rd_empty                : in  std_logic;
+        rd_count                : in  std_logic_vector(6 downto 0);
+        rd_overflow             : in  std_logic;
+        rd_error                : in  std_logic
     );
 end entity;
 
@@ -87,7 +87,7 @@ begin
     wr_data         <= ddr_s_tdata;
     wr_mask         <= x"0000";
 
-    rd_en           <= '0';
+    rd_en           <= '1';
 
     rd_tvalid       <= '1' when rd_s_tvalid = '1' and ch = RD_CH else '0';
     rd_tready       <= '1' when ch = RD_CH and (ddr_s_tvalid ='0' or (ddr_s_tvalid = '1' and ddr_s_tready = '1')) else '0';
@@ -163,9 +163,14 @@ begin
 
             end if;
 
+            if rd_tvalid = '1' and rd_tready = '1' and ch = RD_CH then
+                ddr_s_taddr <= rd_s_taddr;
+            elsif wr_tvalid = '1' and wr_tready = '1' and ch = WR_CH then
+                ddr_s_taddr <= wr_s_taddr;
+            end if;
+
             if wr_tvalid = '1' and wr_tready = '1' and ch = WR_CH then
                 ddr_s_tdata <= wr_s_tdata;
-                ddr_s_taddr <= wr_s_taddr;
             end if;
 
         end if;

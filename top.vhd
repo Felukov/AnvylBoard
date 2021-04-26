@@ -138,7 +138,11 @@ architecture Behavioral of top is
             tft_bklt                    : OUT std_logic;
             tft_r                       : OUT std_logic_vector(7 downto 0);
             tft_g                       : OUT std_logic_vector(7 downto 0);
-            tft_b                       : OUT std_logic_vector(7 downto 0)
+            tft_b                       : OUT std_logic_vector(7 downto 0);
+            rd_m_tvalid                 : out std_logic;
+            rd_m_tready                 : in std_logic;
+            rd_m_tlast                  : out std_logic;
+            rd_m_taddr                  : out std_logic_vector(25 downto 0)
         );
     END COMPONENT;
 
@@ -163,7 +167,7 @@ architecture Behavioral of top is
             rd_s_tvalid                 : in std_logic;
             rd_s_tready                 : out std_logic;
             rd_s_tlast                  : in std_logic;
-            rs_s_taddr                  : in std_logic_vector(25 downto 0);
+            rd_s_taddr                  : in std_logic_vector(25 downto 0);
             --wr channel
             wr_s_tvalid                 : in std_logic;
             wr_s_tready                 : out std_logic;
@@ -182,7 +186,7 @@ architecture Behavioral of top is
             cmd_byte_addr               : out std_logic_vector(29 downto 0);
             cmd_empty                   : in  std_logic;
             cmd_full                    : in  std_logic;
-            -- -- WR interface
+            -- WR interface
             wr_en                       : out std_logic;
             wr_mask                     : out std_logic_vector(16 - 1 downto 0);
             wr_data                     : out std_logic_vector(128 - 1 downto 0);
@@ -191,8 +195,14 @@ architecture Behavioral of top is
             wr_count                    : in  std_logic_vector(6 downto 0);
             wr_underrun                 : in  std_logic;
             wr_error                    : in  std_logic;
-
-            rd_en                       : out std_logic
+            -- RD interface
+            rd_en                       : out std_logic;
+            rd_data                     : in  std_logic_vector(128 - 1 downto 0);
+            rd_full                     : in  std_logic;
+            rd_empty                    : in  std_logic;
+            rd_count                    : in  std_logic_vector(6 downto 0);
+            rd_overflow                 : in  std_logic;
+            rd_error                    : in  std_logic
         );
 
     end component;
@@ -237,6 +247,13 @@ architecture Behavioral of top is
     signal vid_gen_wr_tlast             : std_logic;
     signal vid_gen_wr_tdata             : std_logic_vector(127 downto 0);
     signal vid_gen_wr_taddr             : std_logic_vector(25 downto 0);
+
+    signal tft_rd_cmd_tvalid            : std_logic;
+    signal tft_rd_cmd_tready            : std_logic;
+    signal tft_rd_cmd_tlast             : std_logic;
+    signal tft_rd_cmd_taddr             : std_logic_vector(25 downto 0);
+
+
 
     signal sw_buf                       : std_logic_vector(7 downto 0);
 
@@ -302,17 +319,21 @@ begin
     );
 
     tft_inst: tft port map(
-        clk_100               => mem_clk,
-		init_done             => mem_calib_done,
-		ctrl_en               => '1',
-		tft_clk               => TFT_CLK_O,
-		tft_de                => TFT_DE_O,
-		tft_vidden            => TFT_VDDEN_O,
-		tft_disp              => TFT_DISP_O,
-		tft_bklt              => TFT_BKLT_O,
-		tft_r                 => TFT_R_O,
-		tft_g                 => TFT_G_O,
-		tft_b                 => TFT_B_O
+        clk_100             => mem_clk,
+		init_done           => mem_calib_done,
+		ctrl_en             => '1',
+		tft_clk             => TFT_CLK_O,
+		tft_de              => TFT_DE_O,
+		tft_vidden          => TFT_VDDEN_O,
+		tft_disp            => TFT_DISP_O,
+		tft_bklt            => TFT_BKLT_O,
+		tft_r               => TFT_R_O,
+		tft_g               => TFT_G_O,
+		tft_b               => TFT_B_O,
+        rd_m_tvalid         => tft_rd_cmd_tvalid,
+        rd_m_tready         => tft_rd_cmd_tready,
+        rd_m_tlast          => tft_rd_cmd_tlast,
+        rd_m_taddr          => tft_rd_cmd_taddr
 	);
 
     vid_mem_gen_inst: vid_mem_gen port map (
@@ -331,10 +352,10 @@ begin
         clk                 => mem_clk,
         resetn              => mem_calib_done,
 
-        rd_s_tvalid         => '0',
-        rd_s_tready         => open,
-        rd_s_tlast          => '0',
-        rs_s_taddr          => (others => '0') ,
+        rd_s_tvalid         => tft_rd_cmd_tvalid,
+        rd_s_tready         => tft_rd_cmd_tready,
+        rd_s_tlast          => tft_rd_cmd_tlast,
+        rd_s_taddr          => tft_rd_cmd_taddr,
 
         wr_s_tvalid         => vid_gen_wr_tvalid,
         wr_s_tready         => vid_gen_wr_tready,
@@ -363,7 +384,13 @@ begin
         wr_underrun         => mem_wr_underrun,
         wr_error            => mem_wr_error,
 
-        rd_en               => mem_rd_en
+        rd_en               => mem_rd_en,
+        rd_data             => mem_rd_data,
+        rd_full             => mem_rd_full,
+        rd_empty            => mem_rd_empty,
+        rd_count            => mem_rd_count,
+        rd_overflow         => mem_rd_overflow,
+        rd_error            => mem_rd_error
 
     );
 

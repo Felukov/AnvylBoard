@@ -25,17 +25,21 @@ use UNISIM.VComponents.all;
 
 entity tft is
     Port (
-        clk_100                              : in std_logic;
-        init_done                            : in std_logic;
-        ctrl_en                              : in std_logic;
-        tft_clk                              : out std_logic;
-        tft_de                               : out std_logic;
-        tft_vidden                           : out std_logic;
-        tft_disp                             : out std_logic;
-        tft_bklt                             : out std_logic;
-        tft_r                                : out std_logic_vector(7 downto 0);
-        tft_g                                : out std_logic_vector(7 downto 0);
-        tft_b                                : out std_logic_vector(7 downto 0)
+        clk_100                             : in std_logic;
+        init_done                           : in std_logic;
+        ctrl_en                             : in std_logic;
+        tft_clk                             : out std_logic;
+        tft_de                              : out std_logic;
+        tft_vidden                          : out std_logic;
+        tft_disp                            : out std_logic;
+        tft_bklt                            : out std_logic;
+        tft_r                               : out std_logic_vector(7 downto 0);
+        tft_g                               : out std_logic_vector(7 downto 0);
+        tft_b                               : out std_logic_vector(7 downto 0);
+        rd_m_tvalid                         : out std_logic;
+        rd_m_tready                         : in std_logic;
+        rd_m_tlast                          : out std_logic;
+        rd_m_taddr                          : out std_logic_vector(25 downto 0)
     );
 end tft;
 
@@ -52,30 +56,46 @@ architecture Behavioral of tft is
 
     component pwm
         generic (
-            C_CLK_I_FREQUENCY : natural;
-            C_PWM_FREQUENCY   : natural;
-            C_PWM_RESOLUTION  : natural
+            C_CLK_I_FREQUENCY       : natural;
+            C_PWM_FREQUENCY         : natural;
+            C_PWM_RESOLUTION        : natural
         );
     	port (
-    		CLK_I            : IN std_logic;
-    		RST_I            : IN std_logic;
-            DUTY_FACTOR_I    : in std_logic_vector (C_PWM_RESOLUTION-1 downto 0);
-    		PWM_O            : OUT std_logic
+    		CLK_I                   : IN std_logic;
+    		RST_I                   : IN std_logic;
+            DUTY_FACTOR_I           : in std_logic_vector (C_PWM_RESOLUTION-1 downto 0);
+    		PWM_O                   : OUT std_logic
         );
     end component;
 
     COMPONENT tft_video_timing_gen
        PORT(
-            clk             : IN std_logic;
-            clk_en          : IN std_logic;
-            rst             : IN std_logic;
-            vde             : OUT std_logic;
-            hs              : OUT std_logic;
-            vs              : OUT std_logic;
-            hcnt            : OUT natural;
-            vcnt            : OUT natural
+            clk                     : IN std_logic;
+            clk_en                  : IN std_logic;
+            rst                     : IN std_logic;
+            vde                     : OUT std_logic;
+            hs                      : OUT std_logic;
+            vs                      : OUT std_logic;
+            hcnt                    : OUT natural;
+            vcnt                    : OUT natural
     );
     END COMPONENT;
+
+    component tft_ddr2_reader is
+        port (
+            clk                     : in std_logic;
+            resetn                  : in std_logic;
+
+            next_frame_s_tvalid     : in std_logic;
+            next_frame_s_tready     : out std_logic;
+
+            --rd cmd channel
+            rd_m_tvalid             : out std_logic;
+            rd_m_tready             : in std_logic;
+            rd_m_tlast              : out std_logic;
+            rd_m_taddr              : out std_logic_vector(25 downto 0)
+        );
+    end component;
 
     type state_t is (ST_OFF, ST_POWER_UP, ST_LED_WARM_UP, ST_LED_COOL_DOWN, ST_POWER_DOWN, ST_ON);
 
@@ -97,6 +117,13 @@ architecture Behavioral of tft is
 
     signal pwm_backlight                    : std_logic;
     signal vde                              : std_logic;
+
+    signal x                                : natural;
+    signal y                                : natural;
+
+    --signal
+    signal ddr_sync                         : std_logic;
+    signal frame_started                    : std_logic;
 
 begin
 
@@ -133,10 +160,21 @@ begin
         vde               => vde,
         hs                => open,
         vs                => open,
-        hcnt              => open,
-        vcnt              => open
+        hcnt              => x,
+        vcnt              => y
     );
 
+    tft_ddr2_reader_inst : tft_ddr2_reader port map (
+        clk                 => clk_100,
+        resetn              => init_done,
+        next_frame_s_tvalid => '1',
+        next_frame_s_tready => open,
+        rd_m_tvalid         => rd_m_tvalid,
+        rd_m_tready         => rd_m_tready,
+        rd_m_tlast          => rd_m_tlast,
+        rd_m_taddr          => rd_m_taddr
+
+    );
 
     tft_clk_counter_vec <= std_logic_vector(to_unsigned(tft_clk_counter, 16));
     -- the process generates 9MHZ clock for TFT
