@@ -24,10 +24,16 @@ use IEEE.NUMERIC_STD.ALL;
 use UNISIM.VComponents.all;
 
 entity tft is
-    Port (
+    generic (
+        SIMULATION                          : string := "FALSE"
+    );
+    port (
+        --clock and syncho
         clk_100                             : in std_logic;
         init_done                           : in std_logic;
+        --control interface
         ctrl_en                             : in std_logic;
+        --tft interface
         tft_clk                             : out std_logic;
         tft_de                              : out std_logic;
         tft_vidden                          : out std_logic;
@@ -36,23 +42,50 @@ entity tft is
         tft_r                               : out std_logic_vector(7 downto 0);
         tft_g                               : out std_logic_vector(7 downto 0);
         tft_b                               : out std_logic_vector(7 downto 0);
-        rd_m_tvalid                         : out std_logic;
-        rd_m_tready                         : in std_logic;
-        rd_m_tlast                          : out std_logic;
-        rd_m_taddr                          : out std_logic_vector(25 downto 0)
+        --rd cmd channel to ddr
+        rd_cmd_m_tvalid                     : out std_logic;
+        rd_cmd_m_tready                     : in std_logic;
+        rd_cmd_m_tlast                      : out std_logic;
+        rd_cmd_m_taddr                      : out std_logic_vector(25 downto 0);
+        -- rd data channel from ddr
+        rd_data_s_tvalid                    : in std_logic;
+        rd_data_s_tready                    : out std_logic;
+        rd_data_s_tdata                     : in std_logic_vector(127 downto 0)
     );
 end tft;
 
 architecture Behavioral of tft is
-    constant CLOCKFREQ                      : natural := 9; --MHZ
-    constant TPOWERUP                       : natural := 1; --ms
-    constant TPOWERDOWN                     : natural := 1; --ms
-    constant TLEDWARMUP                     : natural := 200; --ms
-    constant TLEDCOOLDOWN                   : natural := 200; --ms
-    constant TLEDWARMUP_CYCLES              : natural := natural(CLOCKFREQ*TLEDWARMUP*1000);
-    constant TLEDCOOLDOWN_CYCLES            : natural := natural(CLOCKFREQ*TLEDCOOLDOWN*1000);
-    constant TPOWERUP_CYCLES                : natural := natural(CLOCKFREQ*TPOWERUP*1000);
-    constant TPOWERDOWN_CYCLES              : natural := natural(CLOCKFREQ*TPOWERDOWN*1000);
+
+    function get_delay(simulation : string) return integer is begin
+        if SIMULATION = "TRUE" then
+            return 10;
+        else
+            return 1000;
+        end if;
+    end function;
+
+    function get_warm_up_cool_down_time(simulation : string) return integer is begin
+        if SIMULATION = "TRUE" then
+            return 2;
+        else
+            return 200;
+        end if;
+    end function;
+
+    constant CLOCKFREQ                      : natural := 9; --9 MHZ
+    constant TPOWERUP                       : natural := 1; --1 ms
+    constant TPOWERDOWN                     : natural := 1; --1 ms
+    constant TLEDWARMUP                     : natural := get_warm_up_cool_down_time(SIMULATION); --200 ms
+    constant TLEDCOOLDOWN                   : natural := get_warm_up_cool_down_time(SIMULATION); --200 ms
+    constant DELAY                          : natural := get_delay(SIMULATION); -- 1000
+    constant TLEDWARMUP_CYCLES              : natural := natural(CLOCKFREQ*TLEDWARMUP*DELAY);
+    constant TLEDCOOLDOWN_CYCLES            : natural := natural(CLOCKFREQ*TLEDCOOLDOWN*DELAY);
+    constant TPOWERUP_CYCLES                : natural := natural(CLOCKFREQ*TPOWERUP*DELAY);
+    constant TPOWERDOWN_CYCLES              : natural := natural(CLOCKFREQ*TPOWERDOWN*DELAY);
+
+    function get_max_delay_cnt return integer is begin
+        return CLOCKFREQ*get_delay("FALSE")*get_warm_up_cool_down_time("FALSE");
+    end function;
 
     component pwm
         generic (
@@ -90,10 +123,21 @@ architecture Behavioral of tft is
             next_frame_s_tready     : out std_logic;
 
             --rd cmd channel
-            rd_m_tvalid             : out std_logic;
-            rd_m_tready             : in std_logic;
-            rd_m_tlast              : out std_logic;
-            rd_m_taddr              : out std_logic_vector(25 downto 0)
+            rd_cmd_m_tvalid         : out std_logic;
+            rd_cmd_m_tready         : in std_logic;
+            rd_cmd_m_tlast          : out std_logic;
+            rd_cmd_m_taddr          : out std_logic_vector(25 downto 0);
+
+            --rd data channel from ddr
+            rd_data_s_tvalid        : in std_logic;
+            rd_data_s_tready        : out std_logic;
+            rd_data_s_tdata         : in std_logic_vector(127 downto 0);
+
+            --rd data channel to tft
+            rd_data_m_tvalid        : out std_logic;
+            rd_data_m_tready        : in std_logic;
+            rd_data_m_tdata         : out std_logic_vector(23 downto 0)
+
         );
     end component;
 
@@ -108,7 +152,7 @@ architecture Behavioral of tft is
 
     signal local_rst                        : std_logic;
 
-    signal delay_cnt                        : natural range 0 to TLEDCOOLDOWN_CYCLES := 0;
+    signal delay_cnt                        : natural range 0 to get_max_delay_cnt := 0;
     signal delay_reload                     : std_logic;
     signal delay_event_power_up             : std_logic;
     signal delay_event_power_down           : std_logic;
@@ -121,9 +165,15 @@ architecture Behavioral of tft is
     signal x                                : natural;
     signal y                                : natural;
 
+    signal rd_data_m_tvalid                 : std_logic;
+    signal rd_data_m_tready                 : std_logic;
+    signal rd_data_m_tdata                  : std_logic_vector(23 downto 0);
+
     --signal
     signal ddr_sync                         : std_logic;
     signal frame_started                    : std_logic;
+
+    signal next_frame_tvalid                : std_logic;
 
 begin
 
@@ -164,17 +214,42 @@ begin
         vcnt              => y
     );
 
+    rd_data_m_tready <= '1';
     tft_ddr2_reader_inst : tft_ddr2_reader port map (
         clk                 => clk_100,
         resetn              => init_done,
-        next_frame_s_tvalid => '1',
+        next_frame_s_tvalid => next_frame_tvalid,
         next_frame_s_tready => open,
-        rd_m_tvalid         => rd_m_tvalid,
-        rd_m_tready         => rd_m_tready,
-        rd_m_tlast          => rd_m_tlast,
-        rd_m_taddr          => rd_m_taddr
+
+        rd_cmd_m_tvalid     => rd_cmd_m_tvalid,
+        rd_cmd_m_tready     => rd_cmd_m_tready,
+        rd_cmd_m_tlast      => rd_cmd_m_tlast,
+        rd_cmd_m_taddr      => rd_cmd_m_taddr,
+
+        rd_data_s_tvalid    => rd_data_s_tvalid,
+        rd_data_s_tready    => rd_data_s_tready,
+        rd_data_s_tdata     => rd_data_s_tdata,
+
+        rd_data_m_tvalid    => rd_data_m_tvalid,
+        rd_data_m_tready    => rd_data_m_tready,
+        rd_data_m_tdata     => rd_data_m_tdata
 
     );
+
+    next_frame_process: process (clk_100)
+    begin
+        if rising_edge(clk_100) then
+            if init_done = '0' then
+                next_frame_tvalid <= '1';
+            else
+                if (tft_clk_en = '1' and x = 479) then
+                    next_frame_tvalid <= '1';
+                elsif (next_frame_tvalid = '1') then
+                    next_frame_tvalid <= '0';
+                end if;
+            end if;
+        end if;
+    end process;
 
     tft_clk_counter_vec <= std_logic_vector(to_unsigned(tft_clk_counter, 16));
     -- the process generates 9MHZ clock for TFT
@@ -305,9 +380,9 @@ begin
                 tft_clk     <= tft_clk_ovf;
                 tft_de      <= vde;
                 tft_disp    <= '1';
-                tft_r       <= (others => '1');
-                tft_g       <= (others => '1');
-                tft_b       <= (others => '0');
+                tft_r       <= rd_data_m_tdata(7 downto 0);
+                tft_g       <= rd_data_m_tdata(15 downto 8);
+                tft_b       <= rd_data_m_tdata(23 downto 16);
             end if;
 
             if (state = ST_ON) then

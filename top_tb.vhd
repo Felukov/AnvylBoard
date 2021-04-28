@@ -59,6 +59,9 @@ ARCHITECTURE behavior OF top_tb IS
 
     -- Component Declaration for the Unit Under Test (UUT)
     component top
+        generic (
+            SIMULATION              : string
+        );
         port (
             CLK                     : in std_logic;
             DDR_CLK_P               : out std_logic;
@@ -157,38 +160,40 @@ BEGIN
     rzq_pulldown3 : PULLDOWN port map(O => rzq3);
 
 	-- Instantiate the Unit Under Test (UUT)
-    uut: top port map (
-          CLK           => CLK,
-          DDR_CLK_P     => mcb3_dram_ck,
-          DDR_CLK_N     => mcb3_dram_ck_n,
-          DDR_CLK_EN    => mcb3_dram_cke,
-          DDR_ADDR      => mcb3_dram_a,
-          DDR_BA        => mcb3_dram_ba,
-          DDR_DATA      => mcb3_dram_dq,
-          DDR_RAS_N     => mcb3_dram_ras_n,
-          DDR_CAS_N     => mcb3_dram_cas_n,
-          DDR_WE_N      => mcb3_dram_we_n,
-          DDR_ODT       => mcb3_dram_odt,
-          DDR_LDM       => mcb3_dram_dm,
-          DDR_UDM       => mcb3_dram_udm,
-          DDR_UDQS_P    => mcb3_dram_udqs,
-          DDR_UDQS_N    => mcb3_dram_udqs_n,
-          DDR_LDQS_P    => mcb3_dram_dqs,
-          DDR_LDQS_N    => mcb3_dram_dqs_n,
-          SW            => "00000000",
-          RZQ           => rzq3,
-          ZIO           => zio3,
-          TFT_CLK_O     => open,
-          TFT_VDDEN_O   => open,
-          TFT_DE_O      => open,
-          TFT_BKLT_O    => open,
-          TFT_DISP_O    => open,
-          TFT_R_O       => open,
-          TFT_G_O       => open,
-          TFT_B_O       => open,
-          RS232_UART_TX => open,
-          RS232_UART_RX => '0'
-        );
+    uut: top generic map (
+        SIMULATION      => "TRUE"
+    ) port map (
+        CLK           => CLK,
+        DDR_CLK_P     => mcb3_dram_ck,
+        DDR_CLK_N     => mcb3_dram_ck_n,
+        DDR_CLK_EN    => mcb3_dram_cke,
+        DDR_ADDR      => mcb3_dram_a,
+        DDR_BA        => mcb3_dram_ba,
+        DDR_DATA      => mcb3_dram_dq,
+        DDR_RAS_N     => mcb3_dram_ras_n,
+        DDR_CAS_N     => mcb3_dram_cas_n,
+        DDR_WE_N      => mcb3_dram_we_n,
+        DDR_ODT       => mcb3_dram_odt,
+        DDR_LDM       => mcb3_dram_dm,
+        DDR_UDM       => mcb3_dram_udm,
+        DDR_UDQS_P    => mcb3_dram_udqs,
+        DDR_UDQS_N    => mcb3_dram_udqs_n,
+        DDR_LDQS_P    => mcb3_dram_dqs,
+        DDR_LDQS_N    => mcb3_dram_dqs_n,
+        SW            => "00000000",
+        RZQ           => rzq3,
+        ZIO           => zio3,
+        TFT_CLK_O     => open,
+        TFT_VDDEN_O   => open,
+        TFT_DE_O      => open,
+        TFT_BKLT_O    => open,
+        TFT_DISP_O    => open,
+        TFT_R_O       => open,
+        TFT_G_O       => open,
+        TFT_B_O       => open,
+        RS232_UART_TX => open,
+        RS232_UART_RX => '0'
+    );
 
     -- Instantiate the DDR2 model
     ddr2_model_inst : ddr2_model_c3 port map (

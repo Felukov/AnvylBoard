@@ -25,7 +25,10 @@ use IEEE.NUMERIC_STD.ALL;
 use UNISIM.VComponents.all;
 
 entity top is
-    Port (
+    generic (
+        SIMULATION              : string := "FALSE"
+    );
+    port (
         CLK                     : in std_logic;
         DDR_CLK_P               : out std_logic;
         DDR_CLK_N               : out std_logic;
@@ -74,7 +77,7 @@ architecture Behavioral of top is
     component ddr2 is
         generic (
             C3_SIMULATION                : string
-          );
+        );
         port (
             mcb3_dram_dq                 : inout std_logic_vector(C3_NUM_DQ_PINS-1 downto 0);
             mcb3_dram_a                  : out std_logic_vector(C3_MEM_ADDR_WIDTH-1 downto 0);
@@ -127,7 +130,10 @@ architecture Behavioral of top is
     end component;
 
     COMPONENT tft
-        PORT (
+        generic (
+            SIMULATION                  : string
+        );
+        port (
             clk_100                     : IN std_logic;
             init_done                   : IN std_logic;
             ctrl_en                     : IN std_logic;
@@ -139,10 +145,15 @@ architecture Behavioral of top is
             tft_r                       : OUT std_logic_vector(7 downto 0);
             tft_g                       : OUT std_logic_vector(7 downto 0);
             tft_b                       : OUT std_logic_vector(7 downto 0);
-            rd_m_tvalid                 : out std_logic;
-            rd_m_tready                 : in std_logic;
-            rd_m_tlast                  : out std_logic;
-            rd_m_taddr                  : out std_logic_vector(25 downto 0)
+            --rd cmd channel to ddr
+            rd_cmd_m_tvalid             : out std_logic;
+            rd_cmd_m_tready             : in std_logic;
+            rd_cmd_m_tlast              : out std_logic;
+            rd_cmd_m_taddr              : out std_logic_vector(25 downto 0);
+            -- rd data channel from ddr
+            rd_data_s_tvalid            : in std_logic;
+            rd_data_s_tready            : out std_logic;
+            rd_data_s_tdata             : in std_logic_vector(127 downto 0)
         );
     END COMPONENT;
 
@@ -178,7 +189,7 @@ architecture Behavioral of top is
             rd_m_tvalid                 : out std_logic;
             rd_m_tready                 : in std_logic;
             rd_m_tlast                  : out std_logic;
-            rd_m_tdata                  : out std_logic_vector(25 downto 0);
+            rd_m_tdata                  : out std_logic_vector(127 downto 0);
             --DDR interface
             cmd_en                      : out std_logic;
             cmd_instr                   : out std_logic_vector(2 downto 0);
@@ -253,7 +264,9 @@ architecture Behavioral of top is
     signal tft_rd_cmd_tlast             : std_logic;
     signal tft_rd_cmd_taddr             : std_logic_vector(25 downto 0);
 
-
+    signal tft_rd_data_tvalid           : std_logic;
+    signal tft_rd_data_tready           : std_logic;
+    signal tft_rd_data_tdata            : std_logic_vector(127 downto 0);
 
     signal sw_buf                       : std_logic_vector(7 downto 0);
 
@@ -266,7 +279,7 @@ begin
 
     -- Instantiate DDR2
     ddr2_inst: ddr2 generic map (
-        C3_SIMULATION        => "TRUE"
+        C3_SIMULATION        => SIMULATION
     ) port map (
         c3_sys_clk           => sys_clk_ibufg,
         c3_sys_rst_i         => board_reset_n,
@@ -318,7 +331,9 @@ begin
         c3_p0_rd_error       => mem_rd_error
     );
 
-    tft_inst: tft port map(
+    tft_inst: tft generic map (
+        SIMULATION          => SIMULATION
+    ) port map(
         clk_100             => mem_clk,
 		init_done           => mem_calib_done,
 		ctrl_en             => '1',
@@ -330,11 +345,16 @@ begin
 		tft_r               => TFT_R_O,
 		tft_g               => TFT_G_O,
 		tft_b               => TFT_B_O,
-        rd_m_tvalid         => tft_rd_cmd_tvalid,
-        rd_m_tready         => tft_rd_cmd_tready,
-        rd_m_tlast          => tft_rd_cmd_tlast,
-        rd_m_taddr          => tft_rd_cmd_taddr
-	);
+        rd_cmd_m_tvalid     => tft_rd_cmd_tvalid,
+        rd_cmd_m_tready     => tft_rd_cmd_tready,
+        rd_cmd_m_tlast      => tft_rd_cmd_tlast,
+        rd_cmd_m_taddr      => tft_rd_cmd_taddr,
+
+        rd_data_s_tvalid    => tft_rd_data_tvalid,
+        rd_data_s_tready    => tft_rd_data_tready,
+        rd_data_s_tdata     => tft_rd_data_tdata
+
+    );
 
     vid_mem_gen_inst: vid_mem_gen port map (
         clk                 => mem_clk,
@@ -363,10 +383,10 @@ begin
         wr_s_tdata          => vid_gen_wr_tdata,
         wr_s_taddr          => vid_gen_wr_taddr,
 
-        rd_m_tvalid         => open,
-        rd_m_tready         => '1',
+        rd_m_tvalid         => tft_rd_data_tvalid,
+        rd_m_tready         => tft_rd_data_tready,
         rd_m_tlast          => open,
-        rd_m_tdata          => open,
+        rd_m_tdata          => tft_rd_data_tdata,
 
         cmd_en              => mem_cmd_en,
         cmd_instr           => mem_cmd_instr,

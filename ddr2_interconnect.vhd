@@ -23,7 +23,7 @@ entity ddr2_interconnect is
         rd_m_tvalid             : out std_logic;
         rd_m_tready             : in std_logic;
         rd_m_tlast              : out std_logic;
-        rd_m_tdata              : out std_logic_vector(25 downto 0);
+        rd_m_tdata              : out std_logic_vector(127 downto 0);
         --DDR interface
         cmd_en                  : out std_logic;
         cmd_instr               : out std_logic_vector(2 downto 0);
@@ -87,7 +87,9 @@ begin
     wr_data         <= ddr_s_tdata;
     wr_mask         <= x"0000";
 
-    rd_en           <= '1';
+    rd_en           <= rd_m_tready;
+    rd_m_tvalid     <= '1' when rd_empty = '0' else '0';
+    rd_m_tdata      <= rd_data;
 
     rd_tvalid       <= '1' when rd_s_tvalid = '1' and ch = RD_CH else '0';
     rd_tready       <= '1' when ch = RD_CH and (ddr_s_tvalid ='0' or (ddr_s_tvalid = '1' and ddr_s_tready = '1')) else '0';
