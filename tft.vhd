@@ -121,6 +121,7 @@ architecture Behavioral of tft is
 
             next_frame_s_tvalid     : in std_logic;
             next_frame_s_tready     : out std_logic;
+            next_frame_s_tdata      : in std_logic_vector(8 downto 0);
 
             --rd cmd channel
             rd_cmd_m_tvalid         : out std_logic;
@@ -174,6 +175,7 @@ architecture Behavioral of tft is
     signal frame_started                    : std_logic;
 
     signal next_frame_tvalid                : std_logic;
+    signal next_frame_tdata                 : std_logic_vector(8 downto 0);
 
 begin
 
@@ -220,6 +222,7 @@ begin
         resetn              => init_done,
         next_frame_s_tvalid => next_frame_tvalid,
         next_frame_s_tready => open,
+        next_frame_s_tdata  => next_frame_tdata,
 
         rd_cmd_m_tvalid     => rd_cmd_m_tvalid,
         rd_cmd_m_tready     => rd_cmd_m_tready,
@@ -236,11 +239,12 @@ begin
 
     );
 
+    next_frame_tdata <= std_logic_vector(to_unsigned(y, 9));
     next_frame_process: process (clk_100)
     begin
         if rising_edge(clk_100) then
             if init_done = '0' then
-                next_frame_tvalid <= '1';
+                next_frame_tvalid <= '0';
             else
                 if (tft_clk_en = '1' and x = 479) then
                     next_frame_tvalid <= '1';

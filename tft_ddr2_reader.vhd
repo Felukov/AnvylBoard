@@ -3,6 +3,7 @@ library UNISIM;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use UNISIM.VComponents.all;
+use ieee.std_logic_unsigned.all;
 
 entity tft_ddr2_reader is
     port (
@@ -11,6 +12,7 @@ entity tft_ddr2_reader is
 
         next_frame_s_tvalid     : in std_logic;
         next_frame_s_tready     : out std_logic;
+        next_frame_s_tdata      : in std_logic_vector(8 downto 0);
 
         --rd cmd channel
         rd_cmd_m_tvalid         : out std_logic;
@@ -48,7 +50,7 @@ architecture rtl of tft_ddr2_reader is
     signal rd_cmd_tvalid        : std_logic;
     signal rd_cmd_tready        : std_logic;
     signal rd_cmd_cnt           : integer range 0 to 1;
-
+    signal rd_cmd_taddr         : integer range 0 to 2**26-1;
     signal next_frame_tvalid    : std_logic;
     signal next_frame_tready    : std_logic;
 
@@ -61,7 +63,7 @@ architecture rtl of tft_ddr2_reader is
     signal rd_data_tready       : std_logic;
     signal rd_data_tbuf         : std_logic_vector(119 downto 24);
     signal rd_data_tdata        : std_logic_vector(23 downto 0);
-    signal fifo_data_idx          : integer range 0 to 4;
+    signal fifo_data_idx        : integer range 0 to 4;
 begin
 
     tft_fifo_inst : tft_fifo port map (
@@ -83,7 +85,7 @@ begin
     rd_cmd_m_tvalid <= rd_cmd_tvalid;
     rd_cmd_tready <= rd_cmd_m_tready;
     rd_cmd_m_tlast <= rd_cmd_tvalid;
-    rd_cmd_m_taddr <= (others => '0');
+    rd_cmd_m_taddr <= std_logic_vector(to_unsigned(rd_cmd_taddr, 26));
 
     rd_data_m_tvalid <= rd_data_tvalid;
     rd_data_tready <= rd_data_m_tready;
@@ -109,6 +111,14 @@ begin
                 end if;
 
             end if;
+
+            if (next_frame_tvalid = '1' and next_frame_tready = '1') then
+                -- addr = 96 * y => addr = y*2^6 + y*2^5 => addr = y << 6 + y << 5
+                rd_cmd_taddr <= conv_integer(next_frame_s_tdata & "000000") + conv_integer(next_frame_s_tdata & "00000");
+            elsif (rd_cmd_tvalid = '1' and rd_cmd_tready = '1') then
+                rd_cmd_taddr <= rd_cmd_taddr + 64;
+            end if;
+
         end if;
     end process;
 
@@ -119,8 +129,7 @@ begin
             (fifo_tvalid = '1' and fifo_cnt > 95)
         else '0';
 
-    forming_output_signals_process: process (clk)
-    begin
+    forming_output_signals_process: process (clk) begin
         if rising_edge(clk) then
             if resetn = '0' then
                 rd_data_tvalid <= '0';
@@ -128,7 +137,7 @@ begin
                 fifo_cnt <= 0;
             else
 
-                if (fifo_tvalid = '1' and fifo_cnt <= 95) then
+                if (fifo_tvalid = '1' and fifo_cnt <= 95 and rd_data_tready = '1') then
                     rd_data_tvalid <= '1';
                 elsif (rd_data_tready = '1') then
                     rd_data_tvalid <= '0';
@@ -152,7 +161,7 @@ begin
                 rd_data_tbuf <= fifo_tdata(119 downto 24);
             end if;
 
-            if (fifo_tvalid = '1' and fifo_tready = '1') then
+            if (fifo_tvalid = '1' and rd_data_tready = '1') then
                 case fifo_data_idx is
                     when 1 => rd_data_tdata <= rd_data_tbuf(119 downto 96);
                     when 2 => rd_data_tdata <= rd_data_tbuf(95 downto 72);

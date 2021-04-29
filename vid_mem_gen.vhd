@@ -147,11 +147,13 @@ begin
 
             if (req_tvalid = '1' and req_tready = '1') then
                 if (x = 0 or y = 0 or x = MAX_H-1 or y = MAX_V-1) then
-                    pixel_tdata(R) <= x"FF";
+                    pixel_tdata(R) <= std_logic_vector(to_unsigned(x, 8));
+                    --pixel_tdata(R) <= x"FF";
                     pixel_tdata(G) <= x"FF";
                     pixel_tdata(B) <= x"FF";
                 else
-                    pixel_tdata(R) <= x"00";
+                    --pixel_tdata(R) <= x"00";
+                    pixel_tdata(R) <= std_logic_vector(to_unsigned(x, 8));
                     pixel_tdata(G) <= x"00";
                     pixel_tdata(B) <= x"AA";
                 end if;
@@ -226,8 +228,8 @@ begin
                     end if;
                 end if;
 
-                if (ddr_data_tvalid = '1' and ddr_data_tready = '1' and wr_fifo_cnt = 63) then
-                    wr_taddr <= wr_taddr + 1;
+                if (wr_tvalid = '1' and wr_tready = '1' and wr_tlast = '1') then
+                    wr_taddr <= wr_taddr + 64;
                 end if;
             end if;
 
