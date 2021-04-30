@@ -146,16 +146,20 @@ begin
             end if;
 
             if (req_tvalid = '1' and req_tready = '1') then
-                if (x = 0 or y = 0 or x = MAX_H-1 or y = MAX_V-1) then
-                    pixel_tdata(R) <= std_logic_vector(to_unsigned(x, 8));
-                    --pixel_tdata(R) <= x"FF";
+                if (x = 0 or y = 0) then
+                    --pixel_tdata(R) <= std_logic_vector(to_unsigned(x, 8));
+                    pixel_tdata(R) <= x"00";
                     pixel_tdata(G) <= x"FF";
-                    pixel_tdata(B) <= x"FF";
+                    pixel_tdata(B) <= x"00";
+                elsif (x = MAX_H-1 or y = MAX_V-1) then
+                    pixel_tdata(R) <= x"00";
+                    pixel_tdata(G) <= x"FF";
+                    pixel_tdata(B) <= x"00";
                 else
                     --pixel_tdata(R) <= x"00";
-                    pixel_tdata(R) <= std_logic_vector(to_unsigned(x, 8));
+                    pixel_tdata(R) <= x"00"; --std_logic_vector(to_unsigned(x, 8));
                     pixel_tdata(G) <= x"00";
-                    pixel_tdata(B) <= x"AA";
+                    pixel_tdata(B) <= x"00";
                 end if;
             end if;
 

@@ -58,8 +58,8 @@ vlog $env(XILINX)/verilog/src/glbl.v
 vlog  +incdir+. +define+x1Gb +define+sg25E +define+x16 "ddr2_model_c3.v"
 
 #Load the design. Use required libraries.#
-#vsim -t ps +notimingchecks -L unisim -L secureip work.top_tb glbl
-vsim -novopt -t ps +notimingchecks -L unisim -L secureip work.top_tb glbl
+vsim -t ps +notimingchecks -L unisim -L secureip work.top_tb glbl
+#vsim -novopt -t ps +notimingchecks -L unisim -L secureip work.top_tb glbl
 
 #add wave -position insertpoint sim:/top_tb/uut/vid_mem_gen_inst/*
 #add wave -position insertpoint sim:/top_tb/uut/ddr2_interconnect_inst/*

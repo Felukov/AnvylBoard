@@ -177,15 +177,17 @@ architecture Behavioral of tft is
     signal next_frame_tvalid                : std_logic;
     signal next_frame_tdata                 : std_logic_vector(8 downto 0);
 
+    signal tft_video_timing_gen_clk_en      : std_logic;
+
 begin
 
-    --4-bit Shift Register For resetting on startup
-    --Asserts local_rst for 4 clock periods
+    -- 4-bit Shift Register For resetting on startup
+    -- Asserts local_rst for 4 clock periods
     SRL16_inst : SRL16E generic map (
         INIT              => X"000F"
     ) port map (
         CLK               => clk_100,     -- Clock input
-        CE                => init_done,   -- Clock enable
+        CE                => '1',   -- Clock enable
         D                 => '0',         -- SRL data input
         A0                => '1',         -- Select[0] input
         A1                => '1',         -- Select[1] input
@@ -205,6 +207,8 @@ begin
         DUTY_FACTOR_I     => "111"
     );
 
+    tft_video_timing_gen_clk_en <= '1' when tft_clk_en = '1' and state = ST_ON else '0';
+
     tft_video_timing_gen_inst: tft_video_timing_gen port map(
         clk               => clk_100,
         clk_en            => tft_clk_en,
@@ -216,7 +220,7 @@ begin
         vcnt              => y
     );
 
-    rd_data_m_tready <= '1';
+    rd_data_m_tready <= '1' when vde = '1' and tft_clk_en = '1' else '0';
     tft_ddr2_reader_inst : tft_ddr2_reader port map (
         clk                 => clk_100,
         resetn              => init_done,
@@ -239,17 +243,21 @@ begin
 
     );
 
-    next_frame_tdata <= std_logic_vector(to_unsigned(y, 9));
     next_frame_process: process (clk_100)
     begin
         if rising_edge(clk_100) then
             if init_done = '0' then
                 next_frame_tvalid <= '0';
+                next_frame_tdata <= (others => '0');
             else
-                if (tft_clk_en = '1' and x = 479) then
+                if (tft_clk_en = '1' and x = 479 and y < 271) or (state = ST_POWER_UP and state_next = ST_LED_WARM_UP) then
                     next_frame_tvalid <= '1';
                 elsif (next_frame_tvalid = '1') then
                     next_frame_tvalid <= '0';
+                end if;
+
+                if (tft_clk_en = '1' and x = 479) then
+                    next_frame_tdata <= std_logic_vector(to_unsigned(y+1, 9));
                 end if;
             end if;
         end if;

@@ -59,11 +59,14 @@ architecture rtl of tft_ddr2_reader is
     signal fifo_tdata           : std_logic_vector(127 downto 0);
     signal fifo_cnt             : natural range 0 to 127;
 
+    signal filter_tvalid        : std_logic;
+    signal filter_tready        : std_logic;
+    signal filter_tdata         : std_logic_vector(127 downto 0);
+    signal rd_data_idx      : integer range 0 to 4;
+
     signal rd_data_tvalid       : std_logic;
     signal rd_data_tready       : std_logic;
-    signal rd_data_tbuf         : std_logic_vector(119 downto 24);
-    signal rd_data_tdata        : std_logic_vector(23 downto 0);
-    signal fifo_data_idx        : integer range 0 to 4;
+    signal rd_data_tdata        : std_logic_vector(127 downto 0);
 begin
 
     tft_fifo_inst : tft_fifo port map (
@@ -89,7 +92,16 @@ begin
 
     rd_data_m_tvalid <= rd_data_tvalid;
     rd_data_tready <= rd_data_m_tready;
-    rd_data_m_tdata <= rd_data_tdata;
+
+    process (rd_data_idx, rd_data_tdata) begin
+        case rd_data_idx is
+            when 1 => rd_data_m_tdata <= rd_data_tdata(95 downto 72);
+            when 2 => rd_data_m_tdata <= rd_data_tdata(71 downto 48);
+            when 3 => rd_data_m_tdata <= rd_data_tdata(47 downto 24);
+            when 4 => rd_data_m_tdata <= rd_data_tdata(23 downto 0);
+            when others => rd_data_m_tdata <= rd_data_tdata(119 downto 96);
+        end case;
+    end process;
 
     forming_rd_cmd_signals_process: process (clk) begin
         if rising_edge(clk) then
@@ -122,54 +134,62 @@ begin
         end if;
     end process;
 
+    fifo_tready <= '1' when filter_tvalid = '0' or (filter_tvalid = '1' and filter_tready = '1') else '0';
+    filter_data_process : process (clk) begin
+        if rising_edge(clk) then
+            if resetn = '0' then
+                filter_tvalid <= '0';
+                fifo_cnt <= 0;
+            else
+                if fifo_tvalid = '1' and fifo_tready = '1' then
+                    fifo_cnt <= (fifo_cnt + 1) mod 128;
+                end if;
 
-    fifo_tready <=
-        '1' when
-            (fifo_tvalid = '1' and fifo_cnt <= 95 and fifo_data_idx = 0 and (rd_data_tvalid = '0' or (rd_data_tvalid = '1' and rd_data_tready = '1'))) or
-            (fifo_tvalid = '1' and fifo_cnt > 95)
-        else '0';
+                if fifo_tvalid = '1' and fifo_tready = '1' then
+                    if (fifo_cnt <= 95 ) then
+                        filter_tvalid <= '1';
+                    else
+                        filter_tvalid <= '0';
+                    end if;
+                elsif filter_tready = '1' then
+                    filter_tvalid <= '0';
+                end if;
 
+            end if;
+
+            if fifo_tvalid = '1' and fifo_tready = '1' then
+               filter_tdata <= fifo_tdata;
+            end if;
+
+        end if;
+    end process;
+
+    filter_tready <= '1' when rd_data_tvalid = '0' or (rd_data_tvalid = '1' and rd_data_tready = '1' and rd_data_idx = 4) else '0';
     forming_output_signals_process: process (clk) begin
         if rising_edge(clk) then
             if resetn = '0' then
                 rd_data_tvalid <= '0';
-                fifo_data_idx <= 0;
-                fifo_cnt <= 0;
+                rd_data_idx <= 0;
             else
 
-                if (fifo_tvalid = '1' and fifo_cnt <= 95 and rd_data_tready = '1') then
+                if filter_tvalid = '1' and filter_tready = '1' then
                     rd_data_tvalid <= '1';
-                elsif (rd_data_tready = '1') then
+                elsif (rd_data_tready = '1' and rd_data_idx = 4) then
                     rd_data_tvalid <= '0';
                 end if;
 
-                if (fifo_tvalid = '1' and rd_data_tready = '1') then
-                    if (fifo_data_idx = 4) then
-                        fifo_data_idx <= 0;
+                if rd_data_tvalid = '1' and rd_data_tready = '1' then
+                    if (rd_data_idx = 4) then
+                        rd_data_idx <= 0;
                     else
-                        fifo_data_idx <= fifo_data_idx + 1;
+                        rd_data_idx <= rd_data_idx + 1;
                     end if;
                 end if;
 
-                if (fifo_tvalid = '1' and fifo_tready = '1') then
-                    fifo_cnt <= (fifo_cnt + 1) mod 128;
-                end if;
-
             end if;
 
-            if (fifo_tvalid = '1' and fifo_tready = '1') then
-                rd_data_tbuf <= fifo_tdata(119 downto 24);
-            end if;
-
-            if (fifo_tvalid = '1' and rd_data_tready = '1') then
-                case fifo_data_idx is
-                    when 1 => rd_data_tdata <= rd_data_tbuf(119 downto 96);
-                    when 2 => rd_data_tdata <= rd_data_tbuf(95 downto 72);
-                    when 3 => rd_data_tdata <= rd_data_tbuf(71 downto 48);
-                    when 4 => rd_data_tdata <= rd_data_tbuf(47 downto 24);
-                    when others => rd_data_tdata <= fifo_tdata(23 downto 0);
-                end case;
-
+            if filter_tvalid = '1' and filter_tready = '1' then
+                rd_data_tdata <= filter_tdata;
             end if;
 
         end if;
