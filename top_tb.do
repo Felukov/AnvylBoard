@@ -48,6 +48,8 @@ vcom -explicit  -93 "tft_ddr2_reader.vhd"
 vcom -explicit  -93 "tft_video_timing_gen.vhd"
 vcom -explicit  -93 "tft.vhd"
 vcom -explicit  -93 "pwm.vhd"
+vcom -explicit  -93 "uart_rx.vhd"
+vcom -explicit  -93 "uart_tx.vhd"
 vcom -explicit  -93 "top.vhd"
 vcom -explicit  -93 "top_tb.vhd"
 

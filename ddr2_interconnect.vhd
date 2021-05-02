@@ -22,32 +22,31 @@ entity ddr2_interconnect is
         --read back channel
         rd_m_tvalid             : out std_logic;
         rd_m_tready             : in std_logic;
-        rd_m_tlast              : out std_logic;
         rd_m_tdata              : out std_logic_vector(127 downto 0);
         --DDR interface
         cmd_en                  : out std_logic;
         cmd_instr               : out std_logic_vector(2 downto 0);
         cmd_bl                  : out std_logic_vector(5 downto 0);
         cmd_byte_addr           : out std_logic_vector(29 downto 0);
-        cmd_empty               : in  std_logic;
-        cmd_full                : in  std_logic;
-        -- -- WR interface
+        cmd_empty               : in std_logic;
+        cmd_full                : in std_logic;
+        -- WR interface
         wr_en                   : out std_logic;
         wr_mask                 : out std_logic_vector(16 - 1 downto 0);
         wr_data                 : out std_logic_vector(128 - 1 downto 0);
-        wr_full                 : in  std_logic;
-        wr_empty                : in  std_logic;
-        wr_count                : in  std_logic_vector(6 downto 0);
-        wr_underrun             : in  std_logic;
-        wr_error                : in  std_logic;
-        -- -- RD interface
+        wr_full                 : in std_logic;
+        wr_empty                : in std_logic;
+        wr_count                : in std_logic_vector(6 downto 0);
+        wr_underrun             : in std_logic;
+        wr_error                : in std_logic;
+        -- RD interface
         rd_en                   : out std_logic;
-        rd_data                 : in  std_logic_vector(128 - 1 downto 0);
-        rd_full                 : in  std_logic;
-        rd_empty                : in  std_logic;
-        rd_count                : in  std_logic_vector(6 downto 0);
-        rd_overflow             : in  std_logic;
-        rd_error                : in  std_logic
+        rd_data                 : in std_logic_vector(128 - 1 downto 0);
+        rd_full                 : in std_logic;
+        rd_empty                : in std_logic;
+        rd_count                : in std_logic_vector(6 downto 0);
+        rd_overflow             : in std_logic;
+        rd_error                : in std_logic
     );
 end entity;
 
@@ -100,14 +99,14 @@ begin
     rd_s_tready     <= rd_tready;
     wr_s_tready     <= wr_tready;
 
-    ch_monitor : process (clk)
-    begin
+    ch_monitor : process (clk) begin
         if rising_edge(clk) then
             if resetn = '0' then
                 ch <= RD_CH;
                 wr_tfirst <= '1';
                 rd_tfirst <= '1';
             else
+
                 if rd_tvalid = '1' and rd_tready = '1' then
                     if (rd_s_tlast = '1') then
                         rd_tfirst <= '1';
@@ -135,18 +134,19 @@ begin
                         ch <= RD_CH;
                     end if;
                 end if;
+
             end if;
         end if;
     end process;
 
-    latch_data_process: process (clk)
-    begin
+    latch_data_process: process (clk) begin
         if rising_edge(clk) then
             if resetn = '0' then
                 ddr_s_tvalid <= '0';
                 ddr_s_tcmd <= WR_CMD;
                 ddr_s_tlast <= '0';
             else
+
                 if rd_tvalid = '1' and rd_tready = '1' and ch = RD_CH then
                     ddr_s_tvalid <= '1';
                 elsif wr_tvalid = '1' and wr_tready = '1' and ch = WR_CH then
@@ -178,8 +178,7 @@ begin
         end if;
     end process;
 
-    writing_data_to_cmd: process (clk)
-    begin
+    writing_data_to_cmd: process (clk) begin
         if rising_edge(clk) then
             if resetn = '0' then
                 cmd_tvalid <= '0';

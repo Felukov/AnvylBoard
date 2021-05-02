@@ -89,55 +89,52 @@ architecture Behavioral of tft is
 
     component pwm
         generic (
-            C_CLK_I_FREQUENCY       : natural;
-            C_PWM_FREQUENCY         : natural;
-            C_PWM_RESOLUTION        : natural
+            C_CLK_I_FREQUENCY               : natural;
+            C_PWM_FREQUENCY                 : natural;
+            C_PWM_RESOLUTION                : natural
         );
     	port (
-    		CLK_I                   : IN std_logic;
-    		RST_I                   : IN std_logic;
-            DUTY_FACTOR_I           : in std_logic_vector (C_PWM_RESOLUTION-1 downto 0);
-    		PWM_O                   : OUT std_logic
+    		CLK_I                           : IN std_logic;
+    		RST_I                           : IN std_logic;
+            DUTY_FACTOR_I                   : in std_logic_vector (C_PWM_RESOLUTION-1 downto 0);
+    		PWM_O                           : OUT std_logic
         );
     end component;
 
     COMPONENT tft_video_timing_gen
        PORT(
-            clk                     : IN std_logic;
-            clk_en                  : IN std_logic;
-            rst                     : IN std_logic;
-            vde                     : OUT std_logic;
-            hs                      : OUT std_logic;
-            vs                      : OUT std_logic;
-            hcnt                    : OUT natural;
-            vcnt                    : OUT natural
+            clk                             : IN std_logic;
+            clk_en                          : IN std_logic;
+            rst                             : IN std_logic;
+            vde                             : OUT std_logic;
+            hs                              : OUT std_logic;
+            vs                              : OUT std_logic;
+            hcnt                            : OUT natural;
+            vcnt                            : OUT natural
     );
     END COMPONENT;
 
     component tft_ddr2_reader is
         port (
-            clk                     : in std_logic;
-            resetn                  : in std_logic;
-
-            next_frame_s_tvalid     : in std_logic;
-            next_frame_s_tready     : out std_logic;
-            next_frame_s_tdata      : in std_logic_vector(8 downto 0);
-
+            clk                             : in std_logic;
+            resetn                          : in std_logic;
+            -- control requests
+            next_frame_s_tvalid             : in std_logic;
+            next_frame_s_tready             : out std_logic;
+            next_frame_s_tdata              : in std_logic_vector(8 downto 0);
             --rd cmd channel
-            rd_cmd_m_tvalid         : out std_logic;
-            rd_cmd_m_tready         : in std_logic;
-            rd_cmd_m_tlast          : out std_logic;
-            rd_cmd_m_taddr          : out std_logic_vector(25 downto 0);
-
+            rd_cmd_m_tvalid                 : out std_logic;
+            rd_cmd_m_tready                 : in std_logic;
+            rd_cmd_m_tlast                  : out std_logic;
+            rd_cmd_m_taddr                  : out std_logic_vector(25 downto 0);
             --rd data channel from ddr
-            rd_data_s_tvalid        : in std_logic;
-            rd_data_s_tready        : out std_logic;
-            rd_data_s_tdata         : in std_logic_vector(127 downto 0);
-
+            rd_data_s_tvalid                : in std_logic;
+            rd_data_s_tready                : out std_logic;
+            rd_data_s_tdata                 : in std_logic_vector(127 downto 0);
             --rd data channel to tft
-            rd_data_m_tvalid        : out std_logic;
-            rd_data_m_tready        : in std_logic;
-            rd_data_m_tdata         : out std_logic_vector(23 downto 0)
+            rd_data_m_tvalid                : out std_logic;
+            rd_data_m_tready                : in std_logic;
+            rd_data_m_tdata                 : out std_logic_vector(23 downto 0)
 
         );
     end component;
@@ -177,50 +174,48 @@ architecture Behavioral of tft is
     signal next_frame_tvalid                : std_logic;
     signal next_frame_tdata                 : std_logic_vector(8 downto 0);
 
-    signal tft_video_timing_gen_clk_en      : std_logic;
-
 begin
 
     -- 4-bit Shift Register For resetting on startup
     -- Asserts local_rst for 4 clock periods
     SRL16_inst : SRL16E generic map (
-        INIT              => X"000F"
+        INIT                => X"000F"
     ) port map (
-        CLK               => clk_100,     -- Clock input
-        CE                => '1',   -- Clock enable
-        D                 => '0',         -- SRL data input
-        A0                => '1',         -- Select[0] input
-        A1                => '1',         -- Select[1] input
-        A2                => '0',         -- Select[2] input
-        A3                => '0',         -- Select[3] input
-        Q                 => local_rst    -- SRL data output
+        CLK                 => clk_100,     -- Clock input
+        CE                  => '1',         -- Clock enable
+        D                   => '0',         -- SRL data input
+        A0                  => '1',         -- Select[0] input
+        A1                  => '1',         -- Select[1] input
+        A2                  => '0',         -- Select[2] input
+        A3                  => '0',         -- Select[3] input
+        Q                   => local_rst    -- SRL data output
     );
 
     pwm_inst: pwm generic map (
-        C_CLK_I_FREQUENCY => 100, -- in MHZ
-        C_PWM_FREQUENCY   => 25_000, -- in Hz
-        C_PWM_RESOLUTION  => 3
+        C_CLK_I_FREQUENCY   => 100, -- in MHZ
+        C_PWM_FREQUENCY     => 25_000, -- in Hz
+        C_PWM_RESOLUTION    => 3
     ) port map (
-        CLK_I             => clk_100,
-        RST_I             => local_rst,
-        PWM_O             => pwm_backlight,
-        DUTY_FACTOR_I     => "111"
+        CLK_I               => clk_100,
+        RST_I               => local_rst,
+        PWM_O               => pwm_backlight,
+        DUTY_FACTOR_I       => "111"
     );
 
-    tft_video_timing_gen_clk_en <= '1' when tft_clk_en = '1' and state = ST_ON else '0';
-
     tft_video_timing_gen_inst: tft_video_timing_gen port map(
-        clk               => clk_100,
-        clk_en            => tft_clk_en,
-        rst               => local_rst,
-        vde               => vde,
-        hs                => open,
-        vs                => open,
-        hcnt              => x,
-        vcnt              => y
+        clk                 => clk_100,
+        clk_en              => tft_clk_en,
+        rst                 => local_rst,
+        vde                 => vde,
+        hs                  => open,
+        vs                  => open,
+        hcnt                => x,
+        vcnt                => y
     );
 
     rd_data_m_tready <= '1' when vde = '1' and tft_clk_en = '1' else '0';
+    tft_clk_counter_vec <= std_logic_vector(to_unsigned(tft_clk_counter, 16));
+
     tft_ddr2_reader_inst : tft_ddr2_reader port map (
         clk                 => clk_100,
         resetn              => init_done,
@@ -263,43 +258,28 @@ begin
         end if;
     end process;
 
-    tft_clk_counter_vec <= std_logic_vector(to_unsigned(tft_clk_counter, 16));
     -- the process generates 9MHZ clock for TFT
     tft_clk_process: process(clk_100) begin
         -- counting
         if (rising_edge(clk_100)) then
             if (local_rst = '1') then
                 tft_clk_counter <= 0;
-            else
-                tft_clk_counter <= (tft_clk_counter + 5898) mod 65535;
-            end if;
-        end if;
-        --get msb
-        if (rising_edge(clk_100)) then
-            if (local_rst = '1') then
                 tft_clk_ovf <= '0';
-            else
-                tft_clk_ovf <= tft_clk_counter_vec(tft_clk_counter_vec'left);
-            end if;
-        end if;
-        --latch prev value
-        if (rising_edge(clk_100)) then
-            if (local_rst = '1') then
                 tft_clk_ovf_prev <= '0';
             else
+
+                tft_clk_counter <= (tft_clk_counter + 5898) mod 65535;
+                --get msb
+                tft_clk_ovf <= tft_clk_counter_vec(tft_clk_counter_vec'left);
+                --latch prev value
                 tft_clk_ovf_prev <= tft_clk_ovf;
-            end if;
-        end if;
-        --generate pulse
-        if (rising_edge(clk_100)) then
-            if (local_rst = '1') then
-                tft_clk_en <= '0';
-            else
+                --generate pulse
                 if (tft_clk_ovf = '1' and tft_clk_ovf_prev = '0') then
                     tft_clk_en <= '1';
                 else
                     tft_clk_en <= '0';
                 end if;
+
             end if;
         end if;
     end process;

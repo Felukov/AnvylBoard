@@ -188,7 +188,6 @@ architecture Behavioral of top is
             --read back channel
             rd_m_tvalid                 : out std_logic;
             rd_m_tready                 : in std_logic;
-            rd_m_tlast                  : out std_logic;
             rd_m_tdata                  : out std_logic_vector(127 downto 0);
             --DDR interface
             cmd_en                      : out std_logic;
@@ -217,6 +216,27 @@ architecture Behavioral of top is
         );
 
     end component;
+
+    component uart_tx is
+        port (
+            clk                         : in std_logic;
+            resetn                      : in std_logic;
+            tx_s_tvalid                 : in std_logic;
+            tx_s_tdata                  : in std_logic_vector(7 downto 0);
+            tx                          : out std_logic
+        );
+    end component;
+
+    component uart_rx is
+        port (
+            clk                         : in std_logic;
+            resetn                      : in std_logic;
+            rx                          : in std_logic;
+            rx_m_tvalid                 : out std_logic;
+            rx_m_tdata                  : out std_logic_vector(7 downto 0)
+        );
+    end component;
+
 
     --Local signals
     signal sys_clk_ibufg                : std_logic;
@@ -269,6 +289,9 @@ architecture Behavioral of top is
     signal tft_rd_data_tdata            : std_logic_vector(127 downto 0);
 
     signal sw_buf                       : std_logic_vector(7 downto 0);
+
+    signal uart_tvalid                  : std_logic;
+    signal uart_tdata                   : std_logic_vector(7 downto 0);
 
 begin
 
@@ -385,7 +408,6 @@ begin
 
         rd_m_tvalid         => tft_rd_data_tvalid,
         rd_m_tready         => tft_rd_data_tready,
-        rd_m_tlast          => open,
         rd_m_tdata          => tft_rd_data_tdata,
 
         cmd_en              => mem_cmd_en,
@@ -412,6 +434,22 @@ begin
         rd_overflow         => mem_rd_overflow,
         rd_error            => mem_rd_error
 
+    );
+
+    uart_rx_inst : uart_rx port map (
+        clk                 => mem_clk,
+        resetn              => mem_calib_done,
+        rx                  => uart_rx_buf(2),
+        rx_m_tvalid         => uart_tvalid,
+        rx_m_tdata          => uart_tdata
+    );
+
+    uart_tx_inst : uart_tx port map (
+        clk                 => mem_clk,
+        resetn              => mem_calib_done,
+        tx_s_tvalid         => uart_tvalid,
+        tx_s_tdata          => uart_tdata,
+        tx                  => RS232_UART_TX
     );
 
     read_rom: process (mem_clk) begin
@@ -454,6 +492,6 @@ begin
         uart_rx_buf <= uart_rx_buf(1 downto 0) & RS232_UART_RX;
     end process;
 
-    RS232_UART_TX <= uart_rx_buf(2);
+    --RS232_UART_TX <= uart_rx_buf(2);
 
 end Behavioral;

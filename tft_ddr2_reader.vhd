@@ -9,21 +9,20 @@ entity tft_ddr2_reader is
     port (
         clk                     : in std_logic;
         resetn                  : in std_logic;
-
+        -- control requests
         next_frame_s_tvalid     : in std_logic;
         next_frame_s_tready     : out std_logic;
         next_frame_s_tdata      : in std_logic_vector(8 downto 0);
-
         --rd cmd channel
         rd_cmd_m_tvalid         : out std_logic;
         rd_cmd_m_tready         : in std_logic;
         rd_cmd_m_tlast          : out std_logic;
         rd_cmd_m_taddr          : out std_logic_vector(25 downto 0);
-
+        --rd data channel from ddr
         rd_data_s_tvalid        : in std_logic;
         rd_data_s_tready        : out std_logic;
         rd_data_s_tdata         : in std_logic_vector(127 downto 0);
-
+        --rd data channel to tft
         rd_data_m_tvalid        : out std_logic;
         rd_data_m_tready        : in std_logic;
         rd_data_m_tdata         : out std_logic_vector(23 downto 0)
@@ -36,14 +35,14 @@ architecture rtl of tft_ddr2_reader is
 
     component tft_fifo is
         port (
-            clk             : in std_logic;
-            resetn          : in std_logic;
-            fifo_s_tvalid   : in std_logic;
-            fifo_s_tready   : out std_logic;
-            fifo_s_tdata    : in std_logic_vector(127 downto 0);
-            fifo_m_tvalid   : out std_logic;
-            fifo_m_tready   : in std_logic;
-            fifo_m_tdata    : out std_logic_vector(127 downto 0)
+            clk                 : in std_logic;
+            resetn              : in std_logic;
+            fifo_s_tvalid       : in std_logic;
+            fifo_s_tready       : out std_logic;
+            fifo_s_tdata        : in std_logic_vector(127 downto 0);
+            fifo_m_tvalid       : out std_logic;
+            fifo_m_tready       : in std_logic;
+            fifo_m_tdata        : out std_logic_vector(127 downto 0)
         );
     end component;
 
@@ -62,11 +61,11 @@ architecture rtl of tft_ddr2_reader is
     signal filter_tvalid        : std_logic;
     signal filter_tready        : std_logic;
     signal filter_tdata         : std_logic_vector(127 downto 0);
-    signal rd_data_idx      : integer range 0 to 4;
 
     signal rd_data_tvalid       : std_logic;
     signal rd_data_tready       : std_logic;
     signal rd_data_tdata        : std_logic_vector(127 downto 0);
+    signal rd_data_idx          : integer range 0 to 4;
 begin
 
     tft_fifo_inst : tft_fifo port map (
@@ -93,7 +92,10 @@ begin
     rd_data_m_tvalid <= rd_data_tvalid;
     rd_data_tready <= rd_data_m_tready;
 
-    process (rd_data_idx, rd_data_tdata) begin
+    fifo_tready <= '1' when filter_tvalid = '0' or (filter_tvalid = '1' and filter_tready = '1') else '0';
+    filter_tready <= '1' when rd_data_tvalid = '0' or (rd_data_tvalid = '1' and rd_data_tready = '1' and rd_data_idx = 4) else '0';
+
+    rd_data_m_tdata_output: process (rd_data_idx, rd_data_tdata) begin
         case rd_data_idx is
             when 1 => rd_data_m_tdata <= rd_data_tdata(95 downto 72);
             when 2 => rd_data_m_tdata <= rd_data_tdata(71 downto 48);
@@ -134,7 +136,6 @@ begin
         end if;
     end process;
 
-    fifo_tready <= '1' when filter_tvalid = '0' or (filter_tvalid = '1' and filter_tready = '1') else '0';
     filter_data_process : process (clk) begin
         if rising_edge(clk) then
             if resetn = '0' then
@@ -164,7 +165,6 @@ begin
         end if;
     end process;
 
-    filter_tready <= '1' when rd_data_tvalid = '0' or (rd_data_tvalid = '1' and rd_data_tready = '1' and rd_data_idx = 4) else '0';
     forming_output_signals_process: process (clk) begin
         if rising_edge(clk) then
             if resetn = '0' then

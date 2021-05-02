@@ -118,6 +118,17 @@ ARCHITECTURE behavior OF top_tb IS
           );
     end component;
 
+    -- UART TX
+    component uart_tx is
+        port (
+            clk                     : in std_logic;
+            resetn                  : in std_logic;
+            tx_s_tvalid             : in std_logic;
+            tx_s_tdata              : in std_logic_vector(7 downto 0);
+            tx                      : out std_logic
+        );
+    end component;
+
     -- Clock signal
     signal CLK                      : std_logic := '0';
     -- Testbench reset signal
@@ -151,6 +162,11 @@ ARCHITECTURE behavior OF top_tb IS
 
     signal calib_done               : std_logic;
     signal error                    : std_logic;
+
+    signal uart_tvalid              : std_logic;
+    signal uart_tdata               : std_logic_vector(7 downto 0);
+    signal uart_rx_tx_in            : std_logic;
+    signal uart_rx_tx_out           : std_logic;
 
 BEGIN
 
@@ -191,8 +207,8 @@ BEGIN
         TFT_R_O       => open,
         TFT_G_O       => open,
         TFT_B_O       => open,
-        RS232_UART_TX => open,
-        RS232_UART_RX => '0'
+        RS232_UART_TX => uart_rx_tx_out,
+        RS232_UART_RX => uart_rx_tx_in
     );
 
     -- Instantiate the DDR2 model
@@ -212,6 +228,14 @@ BEGIN
         dqs_n     => mcb3_dram_dqs_n_vector,
         rdqs_n    => open,
         odt       => mcb3_dram_odt
+    );
+
+    uart_tx_inst : uart_tx port map (
+        clk                 => CLK,
+        resetn              => c3_sys_rst,
+        tx_s_tvalid         => uart_tvalid,
+        tx_s_tdata          => uart_tdata,
+        tx                  => uart_rx_tx_in
     );
 
     -- Assigns
@@ -267,12 +291,15 @@ BEGIN
    -- Stimulus process
    stim_proc: process
    begin
-      -- hold reset state for 100 ns.
-      wait for 100 ns;
+        -- hold reset state for 200 ns.
+        wait for 30 us;
 
-      wait for CLK_period*10;
+        -- insert stimulus here
+        uart_tvalid <= '1';
+        uart_tdata <= x"AB";
 
-      -- insert stimulus here
+        wait for CLK_period;
+        uart_tvalid <= '0';
 
       wait;
    end process;
