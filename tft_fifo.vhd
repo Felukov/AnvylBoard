@@ -21,7 +21,9 @@ entity tft_fifo is
 end entity tft_fifo;
 
 architecture rtl of tft_fifo is
-    constant FIFO_MAX_ADDR       : natural := 255;
+
+    constant FIFO_MAX_ADDR  : natural := 255;
+
     type ram_t is array (FIFO_MAX_ADDR downto 0) of std_logic_vector(127 downto 0);
 
     signal wr_addr          : integer range 0 to FIFO_MAX_ADDR;
