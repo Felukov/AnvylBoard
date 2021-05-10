@@ -48,7 +48,7 @@ begin
         if (rising_edge(clk)) then
             if (rst = '1') then
                 h_cnt   <= H_AV_FP_S_BP - 1; -- 0 is an active pixel
-                v_cnt    <= V_AV_FP_S_BP - 1;
+                v_cnt   <= V_AV_FP_S_BP - 1;
                 vde     <= '0';
                 hs      <= '1';
                 vs      <= '1';
