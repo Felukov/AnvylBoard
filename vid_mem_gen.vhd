@@ -24,6 +24,7 @@ architecture rtl of vid_mem_gen is
     constant MAX_H              : integer := 480;
     constant MAX_V              : integer := 272;
     constant FIFO_LEN           : integer := 64;
+    constant GLYPHS_CNT         : natural := 12*8;
 
     type rgb_ch_t is (R, G, B);
     type rgb_t is array (rgb_ch_t) of std_logic_vector(7 downto 0);
@@ -64,10 +65,12 @@ architecture rtl of vid_mem_gen is
     signal wr_tdata             : rgb_vector_t;
     signal wr_taddr             : integer range 0 to 2**26-1;
     signal wr_fifo_cnt          : integer range 0 to 63;
+    signal wr_reset_addr        : std_logic;
 
     signal glyph_addr           : std_logic_vector(8 downto 0);
     signal glyph_line           : std_logic_vector(39 downto 0);
     signal glyph_line_idx       : natural range 0 to 39;
+    signal glyph_idx            : natural range 0 to GLYPHS_CNT-1;
 
 
     function to_slv(rgb_vec : rgb_vector_t) return std_logic_vector is
@@ -106,7 +109,8 @@ begin
 
     ddr_data_tready <= '1' when (wr_tready = '1') else '0';
     pixel_tready    <= '1' when ddr_data_tvalid = '0' or (ddr_data_tvalid = '1' and ddr_data_tready = '1') else '0';
-    req_tready      <= '1' when req_tvalid = '1' and pixel_tready = '1' else '0';
+    --req_tready      <= '1' when req_tvalid = '1' and pixel_tready = '1' else '0';
+    req_tready      <= '1' when pixel_tvalid = '0' or (pixel_tvalid = '1' and pixel_tready = '1') else '0';
 
     start_cnt_process: process (clk) begin
         if rising_edge(clk) then
@@ -169,15 +173,17 @@ begin
                 if req_tvalid = '1' and req_tready = '1' then
 
                     if x = 38 then
-                        --load next glyph line
-                        --addr <= 0;
                         addr <= addr;
                     elsif x = 478 and y = 271 then
                         --load address
                         addr <= 0;
                     elsif x = 478 and (y=33 or y=67 or y=101 or y=135 or y=169 or y=203 or y=237) then
                         --load next glyph line
-                        addr <= addr + 1;
+                        if (y = 33) then
+                            addr <= addr + 35;
+                        else
+                            addr <= addr + 1;
+                        end if;
                     elsif x = 478 then
                         addr <= addr + 1;
                     end if;
@@ -260,6 +266,7 @@ begin
                 wr_fifo_cnt <= 0;
                 wr_taddr <= 0;
                 wr_tlast <= '0';
+                wr_reset_addr <= '0';
             else
                 if (ddr_data_tvalid = '1' and ddr_data_tready = '1') then
                     wr_tvalid <= '1';
@@ -276,6 +283,10 @@ begin
                 end if;
 
                 if (ddr_data_tvalid = '1' and ddr_data_tready = '1') then
+                    wr_reset_addr <= ddr_data_tlast;
+                end if;
+
+                if (ddr_data_tvalid = '1' and ddr_data_tready = '1') then
                     if (wr_fifo_cnt = FIFO_LEN-1) then
                         wr_fifo_cnt <= 0;
                     else
@@ -284,7 +295,11 @@ begin
                 end if;
 
                 if (wr_tvalid = '1' and wr_tready = '1' and wr_tlast = '1') then
-                    wr_taddr <= wr_taddr + FIFO_LEN;
+                    if (wr_reset_addr = '1') then
+                        wr_taddr <= 0;
+                    else
+                        wr_taddr <= wr_taddr + FIFO_LEN;
+                    end if;
                 end if;
             end if;
 
