@@ -34,7 +34,7 @@ architecture rtl of vid_mem_gen is
     component vid_mem_glyph is
         port (
             clk                 : in std_logic;
-            glyph_addr          : in std_logic_vector(8 downto 0);
+            glyph_addr          : in std_logic_vector(9 downto 0);
             glyph_line          : out std_logic_vector(39 downto 0)
         );
     end component;
@@ -42,6 +42,7 @@ architecture rtl of vid_mem_gen is
     signal x                    : integer range 0 to MAX_H-1;
     signal y                    : integer range 0 to MAX_V-1;
     signal addr                 : integer;
+    signal addr_base            : integer;
 
     signal req_tvalid           : std_logic;
     signal req_tready           : std_logic;
@@ -67,10 +68,15 @@ architecture rtl of vid_mem_gen is
     signal wr_fifo_cnt          : integer range 0 to 63;
     signal wr_reset_addr        : std_logic;
 
-    signal glyph_addr           : std_logic_vector(8 downto 0);
+    signal glyph_addr           : std_logic_vector(9 downto 0);
     signal glyph_line           : std_logic_vector(39 downto 0);
-    signal glyph_line_idx       : natural range 0 to 39;
+    signal glyph_line_buf       : std_logic_vector(39 downto 0);
+    signal glyph_dot_col_rev    : natural range 0 to 39;
+    signal glyph_dot_row        : natural range 0 to 33;
     signal glyph_idx            : natural range 0 to GLYPHS_CNT-1;
+    signal glyph_col            : natural range 0 to 11;
+    signal glyph_col_offset     : natural range 0 to GLYPHS_CNT-1;
+    signal glyph_row            : natural range 0 to 7;
 
 
     function to_slv(rgb_vec : rgb_vector_t) return std_logic_vector is
@@ -98,18 +104,16 @@ begin
         glyph_line  => glyph_line
     );
 
-
     wr_m_tvalid     <= wr_tvalid;
     wr_tready       <= wr_m_tready;
     wr_m_tlast      <= wr_tlast;
     wr_m_tdata      <= to_slv(wr_tdata);
     wr_m_taddr      <= std_logic_vector(to_unsigned(wr_taddr, 26));
 
-    glyph_addr      <= std_logic_vector(to_unsigned(addr, 9));
+    glyph_addr      <= std_logic_vector(to_unsigned(addr, 10));
 
-    ddr_data_tready <= '1' when (wr_tready = '1') else '0';
+    ddr_data_tready <= '1' when wr_tvalid = '0' or (wr_tvalid = '1' and wr_tready = '1') else '0';
     pixel_tready    <= '1' when ddr_data_tvalid = '0' or (ddr_data_tvalid = '1' and ddr_data_tready = '1') else '0';
-    --req_tready      <= '1' when req_tvalid = '1' and pixel_tready = '1' else '0';
     req_tready      <= '1' when pixel_tvalid = '0' or (pixel_tvalid = '1' and pixel_tready = '1') else '0';
 
     start_cnt_process: process (clk) begin
@@ -131,9 +135,13 @@ begin
                 x <= 0;
                 y <= 0;
                 addr <= 0;
-                glyph_line_idx <= 39;
+                addr_base <= 0;
+                glyph_dot_row <= 0;
+                glyph_dot_col_rev <= 39;
+                glyph_col <= 0;
+                glyph_col_offset <= 0;
+                glyph_idx <= 0;
             else
-
                 if (start_cnt(3) = '1') then
                     req_tvalid <= '1';
                 elsif (req_tvalid = '1' and req_tready = '1' and x = MAX_H-1 and y = MAX_V-1) then
@@ -170,38 +178,59 @@ begin
                     end if;
                 end if;
 
-                if req_tvalid = '1' and req_tready = '1' then
-
-                    if x = 38 then
-                        addr <= addr;
-                    elsif x = 478 and y = 271 then
-                        --load address
-                        addr <= 0;
-                    elsif x = 478 and (y=33 or y=67 or y=101 or y=135 or y=169 or y=203 or y=237) then
-                        --load next glyph line
-                        if (y = 33) then
-                            addr <= addr + 35;
-                        else
-                            addr <= addr + 1;
-                        end if;
-                    elsif x = 478 then
-                        addr <= addr + 1;
+                if req_tvalid = '1' and req_tready = '1' and x = 478 then
+                    if (glyph_dot_row = 33) then
+                        glyph_dot_row <= 0;
+                    else
+                        glyph_dot_row <= glyph_dot_row + 1;
                     end if;
+                end if;
 
+                if req_tvalid = '1' and req_tready = '1' then
+                    if (glyph_dot_col_rev = 5 and glyph_col = 11 and glyph_dot_row = 33) then
+                        if (glyph_col_offset = GLYPHS_CNT - 1) then
+                            glyph_col_offset <= 0;
+                        else
+                            glyph_col_offset <= glyph_col_offset + 12;
+                        end if;
+                    end if;
+                end if;
+
+                if req_tvalid = '1' and req_tready = '1' then
+                    if (glyph_dot_col_rev = 5) then
+                        if (glyph_col = 11) then
+                            glyph_col <= 0;
+                        else
+                            glyph_col <= glyph_col + 1;
+                        end if;
+                    end if;
                 end if;
 
                 if (req_tvalid = '1' and req_tready = '1') then
-                    if (glyph_line_idx = 0) then
-                        glyph_line_idx <= 39;
+                    if (glyph_dot_col_rev = 0) then
+                        glyph_dot_col_rev <= 39;
                     else
-                        glyph_line_idx <= glyph_line_idx - 1;
+                        glyph_dot_col_rev <= glyph_dot_col_rev - 1;
                     end if;
                 end if;
 
+                if req_tvalid = '1' and req_tready = '1' then
+                    glyph_idx <= glyph_col + glyph_col_offset;
+                    if (glyph_idx = 0) then
+                        addr_base <= 34;
+                    elsif (glyph_idx = 1) then
+                        addr_base <= 17*34;
+                    else
+                        addr_base <= 2*34;
+                    end if;
+                    addr <= addr_base + glyph_dot_row;
+                end if;
             end if;
 
 
             if (req_tvalid = '1' and req_tready = '1') then
+                glyph_line_buf <= glyph_line;
+
                 if (x = 0 or y = 0) then
                     --pixel_tdata(R) <= std_logic_vector(to_unsigned(x, 8));
                     pixel_tdata(R) <= x"00";
@@ -211,7 +240,7 @@ begin
                     pixel_tdata(R) <= x"00";
                     pixel_tdata(G) <= x"FF";
                     pixel_tdata(B) <= x"00";
-                elsif glyph_line(glyph_line_idx) = '1' then
+                elsif glyph_line_buf(glyph_dot_col_rev) = '1' then
                     pixel_tdata(R) <= x"FF";
                     pixel_tdata(G) <= x"00";
                     pixel_tdata(B) <= x"00";
@@ -232,7 +261,6 @@ begin
                 ddr_data_tvalid <= '0';
                 ddr_data_tlast <= '0';
             else
-
                 if (pixel_tvalid = '1' and pixel_tready = '1') then
                     if (pixel_idx = 4) then
                         pixel_idx <= 0;

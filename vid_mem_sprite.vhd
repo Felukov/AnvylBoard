@@ -7,7 +7,7 @@ use UNISIM.VComponents.all;
 entity vid_mem_glyph is
     port (
         clk         : in std_logic;
-        glyph_addr  : in std_logic_vector(8 downto 0);
+        glyph_addr  : in std_logic_vector(9 downto 0);
         glyph_line  : out std_logic_vector(39 downto 0)
     );
 end entity vid_mem_glyph;
