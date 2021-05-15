@@ -237,6 +237,18 @@ architecture Behavioral of top is
         );
     end component;
 
+    component timer is
+        port (
+            clk_100                             : in std_logic;
+
+            cmd_s_tvalid                        : in std_logic;
+            cmd_s_tdata                         : in std_logic_vector(15 downto 0);
+            cmd_s_tuser                         : in std_logic;
+
+            pulse1ms_m_tvalid                   : out std_logic;
+            pulse_m_tvalid                      : out std_logic
+        );
+    end component;
 
     --Local signals
     signal sys_clk_ibufg                : std_logic;
@@ -292,6 +304,11 @@ architecture Behavioral of top is
 
     signal uart_tvalid                  : std_logic;
     signal uart_tdata                   : std_logic_vector(7 downto 0);
+
+    signal pulse_tvalid                 : std_logic;
+
+    signal timer_cmd_tvalid             : std_logic;
+    signal toggler_fl                   : std_logic;
 
 begin
 
@@ -452,11 +469,16 @@ begin
         tx                  => RS232_UART_TX
     );
 
-    read_rom: process (mem_clk) begin
-        if (rising_edge(mem_clk)) then
-            LED(7 downto 1) <= "0000000";
-        end if;
-    end process;
+    timer_inst : timer port map (
+        clk_100             => mem_clk,
+
+        cmd_s_tvalid        => timer_cmd_tvalid,
+        cmd_s_tdata         => x"1388",
+        cmd_s_tuser         => '0',
+
+        pulse1ms_m_tvalid   => open,
+        pulse_m_tvalid      => pulse_tvalid
+    );
 
     internal_reset: process (sys_clk_ibufg) begin
         if (rising_edge(sys_clk_ibufg)) then
@@ -469,6 +491,30 @@ begin
             end if;
         end if;
 	end process;
+
+    timer_configuration_process: process (mem_clk) begin
+        if rising_edge(mem_clk) then
+            if (mem_rst = '1') then
+                timer_cmd_tvalid <= '1';
+                toggler_fl <= '0';
+            else
+
+                timer_cmd_tvalid <= '0';
+
+                if (pulse_tvalid = '1') then
+                    toggler_fl <= not toggler_fl;
+                end if;
+
+            end if;
+        end if;
+    end process;
+
+    read_rom: process (mem_clk) begin
+        if (rising_edge(mem_clk)) then
+            LED(7 downto 2) <= "000000";
+            LED(1) <= toggler_fl;
+        end if;
+    end process;
 
     leds_monitor: process(mem_clk) begin
         if (rising_edge(mem_clk)) then

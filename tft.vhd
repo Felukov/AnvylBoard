@@ -94,25 +94,25 @@ architecture Behavioral of tft is
             C_PWM_RESOLUTION                : natural
         );
     	port (
-    		CLK_I                           : IN std_logic;
-    		RST_I                           : IN std_logic;
+    		CLK_I                           : in std_logic;
+    		RST_I                           : in std_logic;
             DUTY_FACTOR_I                   : in std_logic_vector (C_PWM_RESOLUTION-1 downto 0);
-    		PWM_O                           : OUT std_logic
+    		PWM_O                           : out std_logic
         );
     end component;
 
-    COMPONENT tft_video_timing_gen
-       PORT(
-            clk                             : IN std_logic;
-            clk_en                          : IN std_logic;
-            rst                             : IN std_logic;
-            vde                             : OUT std_logic;
-            hs                              : OUT std_logic;
-            vs                              : OUT std_logic;
-            hcnt                            : OUT natural;
-            vcnt                            : OUT natural
+    component tft_video_timing_gen
+       port (
+            clk                             : in std_logic;
+            clk_en                          : in std_logic;
+            rst                             : in std_logic;
+            vde                             : out std_logic;
+            hs                              : out std_logic;
+            vs                              : out std_logic;
+            hcnt                            : out natural;
+            vcnt                            : out natural
     );
-    END COMPONENT;
+    end component;
 
     component tft_ddr2_reader is
         port (
@@ -238,8 +238,7 @@ begin
 
     );
 
-    next_frame_process: process (clk_100)
-    begin
+    next_frame_process: process (clk_100) begin
         if rising_edge(clk_100) then
             if init_done = '0' then
                 next_frame_tvalid <= '0';
