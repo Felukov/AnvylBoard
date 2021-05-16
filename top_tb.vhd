@@ -84,6 +84,7 @@ ARCHITECTURE behavior OF top_tb IS
             ZIO                     : inout std_logic;
             LED                     : out std_logic_vector(7 downto 0);
             SW                      : in std_logic_vector(7 downto 0);
+            BTN                     : in std_logic_vector(3 downto 0);
             TFT_CLK_O               : out std_logic;
             TFT_VDDEN_O             : out std_logic;
             TFT_DE_O                : out std_logic;
@@ -207,6 +208,7 @@ BEGIN
         TFT_R_O       => open,
         TFT_G_O       => open,
         TFT_B_O       => open,
+        BTN           => "0000",
         RS232_UART_TX => uart_rx_tx_out,
         RS232_UART_RX => uart_rx_tx_in
     );

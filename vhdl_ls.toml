@@ -1,16 +1,6 @@
 [libraries]
 work.files = [
-  'top.vhd',
-  'top_tb.vhd',
-  'tft.vhd',
-  'uart_rx.vhd',
-  'uart_tx.vhd',
-  'tft.vhd',
-  'tft_fifo.vhd',
-  'tft_video_timing_gen.vhd',
-  'tft_ddr2_reader.vhd',
-  'vid_mem_gen.vhd',
-  'pwm.vhd',
+  '*.vhd',
   './cpu/m68k_pkg.vhd'
 ]
 UNISIM.files = [

@@ -49,11 +49,24 @@ add wave -noupdate -group ddr_interconnect /top_tb/uut/ddr2_interconnect_inst/wr
 add wave -noupdate -group ddr_interconnect /top_tb/uut/ddr2_interconnect_inst/wr_mask
 add wave -noupdate -group ddr_interconnect /top_tb/uut/ddr2_interconnect_inst/rd_tfirst
 add wave -noupdate -group ddr_interconnect /top_tb/uut/ddr2_interconnect_inst/wr_tfirst
+add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/req_tvalid
+add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/req_tready
+add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/addr
+add wave -noupdate -group vid_mem_gen -radix decimal /top_tb/uut/vid_mem_gen_inst/addr_base
+add wave -noupdate -group vid_mem_gen -radix unsigned /top_tb/uut/vid_mem_gen_inst/glyph_addr
+add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/glyph_idx
+add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/glyph_col
+add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/glyph_col_offset
+add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/glyph_dot_col_rev
+add wave -noupdate -group vid_mem_gen -radix decimal /top_tb/uut/vid_mem_gen_inst/glyph_dot_row
+add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/glyph_line
+add wave -noupdate -group vid_mem_gen -childformat {{/top_tb/uut/vid_mem_gen_inst/glyph_q.glyph -radix unsigned}} -subitemconfig {/top_tb/uut/vid_mem_gen_inst/glyph_q.glyph {-radix unsigned}} /top_tb/uut/vid_mem_gen_inst/glyph_q
+add wave -noupdate -group vid_mem_gen -expand /top_tb/uut/vid_mem_gen_inst/glyph_buf
 add wave -noupdate -group vid_mem_gen -radix decimal /top_tb/uut/vid_mem_gen_inst/x
 add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/y
 add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/pixel_tvalid
 add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/pixel_tready
-add wave -noupdate -group vid_mem_gen -expand /top_tb/uut/vid_mem_gen_inst/pixel_tdata
+add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/pixel_tdata
 add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/pixel_tlast
 add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/ddr_data_tvalid
 add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/ddr_data_tready
@@ -63,7 +76,7 @@ add wave -noupdate -group vid_mem_gen -radix decimal /top_tb/uut/vid_mem_gen_ins
 add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/wr_tvalid
 add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/wr_tready
 add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/wr_taddr
-add wave -noupdate -group vid_mem_gen -expand /top_tb/uut/vid_mem_gen_inst/wr_tdata
+add wave -noupdate -group vid_mem_gen /top_tb/uut/vid_mem_gen_inst/wr_tdata
 add wave -noupdate -group tft /top_tb/uut/tft_inst/clk_100
 add wave -noupdate -group tft /top_tb/uut/tft_inst/init_done
 add wave -noupdate -group tft /top_tb/uut/tft_inst/local_rst
@@ -90,20 +103,24 @@ add wave -noupdate -group tft_reader_fifo /top_tb/uut/tft_inst/tft_ddr2_reader_i
 add wave -noupdate /top_tb/uart_tvalid
 add wave -noupdate /top_tb/uart_tdata
 add wave -noupdate /top_tb/uut/uart_rx_buf
-add wave -noupdate -expand -group uart_rx /top_tb/uut/uart_rx_inst/rx_bit_cnt
-add wave -noupdate -expand -group uart_rx /top_tb/uut/uart_rx_inst/rx_cnt
-add wave -noupdate -expand -group uart_rx /top_tb/uut/uart_rx_inst/rx_m_tdata
-add wave -noupdate -expand -group uart_rx /top_tb/uut/uart_rx_inst/rx_state
-add wave -noupdate -expand -group uart_rx /top_tb/uut/uart_rx_inst/rx_tdata
-add wave -noupdate -expand -group uart_rx /top_tb/uut/uart_rx_inst/rx_tvalid
-add wave -noupdate -expand -group uart_tx /top_tb/uut/uart_tx_inst/tx_bit_cnt
-add wave -noupdate -expand -group uart_tx /top_tb/uut/uart_tx_inst/tx_cnt
-add wave -noupdate -expand -group uart_tx /top_tb/uut/uart_tx_inst/tx_s_tdata
-add wave -noupdate -expand -group uart_tx /top_tb/uut/uart_tx_inst/tx_state
-add wave -noupdate -expand -group uart_tx /top_tb/uut/uart_tx_inst/tx_tdata
+add wave -noupdate -group uart_rx /top_tb/uut/uart_rx_inst/rx_bit_cnt
+add wave -noupdate -group uart_rx /top_tb/uut/uart_rx_inst/rx_cnt
+add wave -noupdate -group uart_rx /top_tb/uut/uart_rx_inst/rx_m_tdata
+add wave -noupdate -group uart_rx /top_tb/uut/uart_rx_inst/rx_state
+add wave -noupdate -group uart_rx /top_tb/uut/uart_rx_inst/rx_tdata
+add wave -noupdate -group uart_rx /top_tb/uut/uart_rx_inst/rx_tvalid
+add wave -noupdate -group uart_tx /top_tb/uut/uart_tx_inst/tx_bit_cnt
+add wave -noupdate -group uart_tx /top_tb/uut/uart_tx_inst/tx_cnt
+add wave -noupdate -group uart_tx /top_tb/uut/uart_tx_inst/tx_s_tdata
+add wave -noupdate -group uart_tx /top_tb/uut/uart_tx_inst/tx_state
+add wave -noupdate -group uart_tx /top_tb/uut/uart_tx_inst/tx_tdata
+add wave -noupdate -expand -group timer /top_tb/uut/timer_inst/clk_100
+add wave -noupdate -expand -group timer /top_tb/uut/timer_inst/local_rst
+add wave -noupdate -expand -group timer -radix decimal /top_tb/uut/timer_inst/pulse_counter
+add wave -noupdate -expand -group timer /top_tb/uut/timer_inst/pulse_m_tvalid
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {823775000 ps} 0} {{Cursor 2} {112521331 ps} 0}
-quietly wave cursor active 2
+WaveRestoreCursors {{Cursor 1} {1000235000 ps} 0} {{Cursor 2} {53297775 ps} 0}
+quietly wave cursor active 1
 configure wave -namecolwidth 215
 configure wave -valuecolwidth 204
 configure wave -justifyvalue left
@@ -118,4 +135,4 @@ configure wave -griddelta 160
 configure wave -timeline 1
 configure wave -timelineunits us
 update
-WaveRestoreZoom {112413222 ps} {112556778 ps}
+WaveRestoreZoom {129632989 ps} {1091114053 ps}

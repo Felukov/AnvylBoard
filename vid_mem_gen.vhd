@@ -10,6 +10,8 @@ entity vid_mem_gen is
         clk                     : in std_logic;
         resetn                  : in std_logic;
 
+        event_s_tvalid          : in std_logic;
+
         wr_m_tvalid             : out std_logic;
         wr_m_tready             : in std_logic;
         wr_m_tlast              : out std_logic;
@@ -321,7 +323,11 @@ architecture rtl of vid_mem_gen is
     signal colors2              : colors_t;
     signal colors3              : colors_t;
 
-    signal layout_rom           : rom_t := get_calc_layout;
+    signal layout_ram           : rom_t := get_calc_layout;
+
+    signal upd_req_tvalid       : std_logic;
+
+    signal glyph_upd            : glyph_t;
 
 begin
 
@@ -353,6 +359,32 @@ begin
         end if;
     end process;
 
+    glyph_upd.glyph <= std_logic_vector(to_unsigned(GL_OR, 5));
+    glyph_upd.fg(R) <= x"00";
+    glyph_upd.fg(G) <= x"FF";
+    glyph_upd.fg(B) <= x"00";
+    glyph_upd.bg(R) <= x"80";
+    glyph_upd.bg(G) <= x"80";
+    glyph_upd.bg(B) <= x"80";
+
+    upd_layout: process (clk) begin
+        if rising_edge(clk) then
+            if resetn = '0' then
+                upd_req_tvalid <= '0';
+            else
+                if (event_s_tvalid = '1') then
+                    upd_req_tvalid <= '1';
+                else
+                    upd_req_tvalid <= '0';
+                end if;
+
+                if (event_s_tvalid = '1') then
+                    layout_ram(0) <= glyph_upd;
+                end if;
+            end if;
+        end if;
+    end process;
+
     forming_pixel_values: process (clk) begin
         if rising_edge(clk) then
             if (resetn = '0') then
@@ -369,7 +401,7 @@ begin
                 glyph_col_offset <= 0;
                 glyph_idx <= 0;
             else
-                if (start_cnt(3) = '1') then
+                if (start_cnt(3) = '1' or upd_req_tvalid = '1') then
                     req_tvalid <= '1';
                 elsif (req_tvalid = '1' and req_tready = '1' and x = MAX_H-1 and y = MAX_V-1) then
                     req_tvalid <= '0';
@@ -415,7 +447,7 @@ begin
 
                 if req_tvalid = '1' and req_tready = '1' then
                     if (glyph_dot_col_rev = 7 and glyph_col = 11 and glyph_dot_row = 33) then
-                        if (glyph_col_offset = GLYPHS_CNT - 1) then
+                        if (glyph_col_offset = GLYPHS_CNT-12) then
                             glyph_col_offset <= 0;
                         else
                             glyph_col_offset <= glyph_col_offset + 12;
@@ -449,7 +481,7 @@ begin
 
             if (req_tvalid = '1' and req_tready = '1') then
                 --0
-                glyph_q <= layout_rom(glyph_idx);
+                glyph_q <= layout_ram(glyph_idx);
                 --1
                 glyph_buf <= glyph_q;
                 --2

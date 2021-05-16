@@ -50,6 +50,7 @@ entity top is
         ZIO                     : inout std_logic;
 
         SW                      : in std_logic_vector(7 downto 0);
+        BTN                     : in std_logic_vector(3 downto 0);
         LED                     : out std_logic_vector(7 downto 0);
 
         TFT_CLK_O               : out std_logic;
@@ -134,17 +135,17 @@ architecture Behavioral of top is
             SIMULATION                  : string
         );
         port (
-            clk_100                     : IN std_logic;
-            init_done                   : IN std_logic;
-            ctrl_en                     : IN std_logic;
-            tft_clk                     : OUT std_logic;
-            tft_de                      : OUT std_logic;
-            tft_vidden                  : OUT std_logic;
-            tft_disp                    : OUT std_logic;
-            tft_bklt                    : OUT std_logic;
-            tft_r                       : OUT std_logic_vector(7 downto 0);
-            tft_g                       : OUT std_logic_vector(7 downto 0);
-            tft_b                       : OUT std_logic_vector(7 downto 0);
+            clk_100                     : in std_logic;
+            init_done                   : in std_logic;
+            ctrl_en                     : in std_logic;
+            tft_clk                     : out std_logic;
+            tft_de                      : out std_logic;
+            tft_vidden                  : out std_logic;
+            tft_disp                    : out std_logic;
+            tft_bklt                    : out std_logic;
+            tft_r                       : out std_logic_vector(7 downto 0);
+            tft_g                       : out std_logic_vector(7 downto 0);
+            tft_b                       : out std_logic_vector(7 downto 0);
             --rd cmd channel to ddr
             rd_cmd_m_tvalid             : out std_logic;
             rd_cmd_m_tready             : in std_logic;
@@ -161,6 +162,8 @@ architecture Behavioral of top is
         port (
             clk                         : in std_logic;
             resetn                      : in std_logic;
+
+            event_s_tvalid              : in std_logic;
 
             wr_m_tvalid                 : out std_logic;
             wr_m_tready                 : in std_logic;
@@ -194,25 +197,25 @@ architecture Behavioral of top is
             cmd_instr                   : out std_logic_vector(2 downto 0);
             cmd_bl                      : out std_logic_vector(5 downto 0);
             cmd_byte_addr               : out std_logic_vector(29 downto 0);
-            cmd_empty                   : in  std_logic;
-            cmd_full                    : in  std_logic;
+            cmd_empty                   : in std_logic;
+            cmd_full                    : in std_logic;
             -- WR interface
             wr_en                       : out std_logic;
             wr_mask                     : out std_logic_vector(16 - 1 downto 0);
             wr_data                     : out std_logic_vector(128 - 1 downto 0);
-            wr_full                     : in  std_logic;
-            wr_empty                    : in  std_logic;
-            wr_count                    : in  std_logic_vector(6 downto 0);
-            wr_underrun                 : in  std_logic;
-            wr_error                    : in  std_logic;
+            wr_full                     : in std_logic;
+            wr_empty                    : in std_logic;
+            wr_count                    : in std_logic_vector(6 downto 0);
+            wr_underrun                 : in std_logic;
+            wr_error                    : in std_logic;
             -- RD interface
             rd_en                       : out std_logic;
-            rd_data                     : in  std_logic_vector(128 - 1 downto 0);
-            rd_full                     : in  std_logic;
-            rd_empty                    : in  std_logic;
-            rd_count                    : in  std_logic_vector(6 downto 0);
-            rd_overflow                 : in  std_logic;
-            rd_error                    : in  std_logic
+            rd_data                     : in std_logic_vector(128 - 1 downto 0);
+            rd_full                     : in std_logic;
+            rd_empty                    : in std_logic;
+            rd_count                    : in std_logic_vector(6 downto 0);
+            rd_overflow                 : in std_logic;
+            rd_error                    : in std_logic
         );
 
     end component;
@@ -239,14 +242,27 @@ architecture Behavioral of top is
 
     component timer is
         port (
-            clk_100                             : in std_logic;
+            clk_100                     : in std_logic;
 
-            cmd_s_tvalid                        : in std_logic;
-            cmd_s_tdata                         : in std_logic_vector(15 downto 0);
-            cmd_s_tuser                         : in std_logic;
+            cmd_s_tvalid                : in std_logic;
+            cmd_s_tdata                 : in std_logic_vector(15 downto 0);
+            cmd_s_tuser                 : in std_logic;
 
-            pulse1ms_m_tvalid                   : out std_logic;
-            pulse_m_tvalid                      : out std_logic
+            pulse1ms_m_tvalid           : out std_logic;
+            pulse_m_tvalid              : out std_logic
+        );
+    end component;
+
+    component debouncer is
+        port (
+            clk                         : in std_logic;
+            resetn                      : in std_logic;
+
+            pulse1ms_s_tvalid           : in std_logic;
+            data_s_tvalid               : in std_logic;
+            data_m_tvalid               : out std_logic;
+            posedge_m_tvalid            : out std_logic;
+            negedge_m_tvalid            : out std_logic
         );
     end component;
 
@@ -306,6 +322,7 @@ architecture Behavioral of top is
     signal uart_tdata                   : std_logic_vector(7 downto 0);
 
     signal pulse_tvalid                 : std_logic;
+    signal pulse1ms_tvalid              : std_logic;
 
     signal timer_cmd_tvalid             : std_logic;
     signal toggler_fl                   : std_logic;
@@ -400,6 +417,8 @@ begin
         clk                 => mem_clk,
         resetn              => mem_calib_done,
 
+        event_s_tvalid      => timer_cmd_tvalid,
+
         wr_m_tvalid         => vid_gen_wr_tvalid,
         wr_m_tready         => vid_gen_wr_tready,
         wr_m_tlast          => vid_gen_wr_tlast,
@@ -450,12 +469,12 @@ begin
         rd_count            => mem_rd_count,
         rd_overflow         => mem_rd_overflow,
         rd_error            => mem_rd_error
-
     );
 
     uart_rx_inst : uart_rx port map (
         clk                 => mem_clk,
         resetn              => mem_calib_done,
+
         rx                  => uart_rx_buf(2),
         rx_m_tvalid         => uart_tvalid,
         rx_m_tdata          => uart_tdata
@@ -464,6 +483,7 @@ begin
     uart_tx_inst : uart_tx port map (
         clk                 => mem_clk,
         resetn              => mem_calib_done,
+
         tx_s_tvalid         => uart_tvalid,
         tx_s_tdata          => uart_tdata,
         tx                  => RS232_UART_TX
@@ -473,11 +493,23 @@ begin
         clk_100             => mem_clk,
 
         cmd_s_tvalid        => timer_cmd_tvalid,
-        cmd_s_tdata         => x"1388",
+        cmd_s_tdata         => x"1388", --5 secs
         cmd_s_tuser         => '0',
 
-        pulse1ms_m_tvalid   => open,
+        pulse1ms_m_tvalid   => pulse1ms_tvalid,
         pulse_m_tvalid      => pulse_tvalid
+    );
+
+    debouncer_inst : debouncer port map (
+        clk                 => mem_clk,
+        resetn              => mem_calib_done,
+
+        pulse1ms_s_tvalid   => pulse1ms_tvalid,
+        data_s_tvalid       => BTN(0),
+
+        data_m_tvalid       => LED(7),
+        posedge_m_tvalid    => open,
+        negedge_m_tvalid    => timer_cmd_tvalid
     );
 
     internal_reset: process (sys_clk_ibufg) begin
@@ -495,11 +527,8 @@ begin
     timer_configuration_process: process (mem_clk) begin
         if rising_edge(mem_clk) then
             if (mem_rst = '1') then
-                timer_cmd_tvalid <= '1';
                 toggler_fl <= '0';
             else
-
-                timer_cmd_tvalid <= '0';
 
                 if (pulse_tvalid = '1') then
                     toggler_fl <= not toggler_fl;
@@ -511,7 +540,7 @@ begin
 
     read_rom: process (mem_clk) begin
         if (rising_edge(mem_clk)) then
-            LED(7 downto 2) <= "000000";
+            LED(6 downto 2) <= "00000";
             LED(1) <= toggler_fl;
         end if;
     end process;

@@ -42,7 +42,9 @@ vcom -explicit  -93 "mcb_soft_calibration.vhd"
 vcom -explicit  -93 "memc3_infrastructure.vhd"
 vcom -explicit  -93 "memc3_wrapper.vhd"
 vcom -explicit  -93 "ddr2_interconnect.vhd"
+vcom -explicit  -93 "vid_mem_sprite.vhd"
 vcom -explicit  -93 "vid_mem_gen.vhd"
+vcom -explicit  -93 "vid_mem_ctrl.vhd"
 vcom -explicit  -93 "tft_fifo.vhd"
 vcom -explicit  -93 "tft_ddr2_reader.vhd"
 vcom -explicit  -93 "tft_video_timing_gen.vhd"
@@ -50,6 +52,8 @@ vcom -explicit  -93 "tft.vhd"
 vcom -explicit  -93 "pwm.vhd"
 vcom -explicit  -93 "uart_rx.vhd"
 vcom -explicit  -93 "uart_tx.vhd"
+vcom -explicit  -93 "timer.vhd"
+vcom -explicit  -93 "debouncer.vhd"
 vcom -explicit  -93 "top.vhd"
 vcom -explicit  -93 "top_tb.vhd"
 
@@ -69,7 +73,7 @@ do T:/Projects/AnvylBoard/wave.do
 #
 # Run simulation for this time
 #
-run 40us
+run 1ms
 
 
 #
