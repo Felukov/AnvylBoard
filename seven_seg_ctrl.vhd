@@ -19,7 +19,6 @@ architecture rtl of seven_seg_ctrl is
 
     type data_t is array (natural range 0 to 5) of std_logic_vector(3 downto 0);
 
-
     component timer is
         port (
             clk_100                     : in std_logic;

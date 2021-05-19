@@ -34,26 +34,26 @@
     #NET "LDT2R"    LOC="T8"    |    IOSTANDARD = LVCMOS18;     #Bank = 3, pin name = IO_L11P_3,        Sch name = LDT2-R
 
 ## Buttons
-    NET "BTN[0]" LOC = E6 | IOSTANDARD = "LVCMOS18";         #Bank = 3, pin name = IO_L82P_3,    Sch name = BTN0
-    NET "BTN[1]" LOC = D5 | IOSTANDARD = "LVCMOS18";         #Bank = 3, pin name = IO_L82N_3,    Sch name = BTN1
-    NET "BTN[2]" LOC = A3 | IOSTANDARD = "LVCMOS18";         #Bank = 3, pin name = IO_L83P_3,    Sch name = BTN2
-    NET "BTN[3]" LOC = AB9 | IOSTANDARD = "LVCMOS33";
+    NET "BTN[0]"    LOC = E6 | IOSTANDARD = "LVCMOS18";         #Bank = 3, pin name = IO_L82P_3,    Sch name = BTN0
+    NET "BTN[1]"    LOC = D5 | IOSTANDARD = "LVCMOS18";         #Bank = 3, pin name = IO_L82N_3,    Sch name = BTN1
+    NET "BTN[2]"    LOC = A3 | IOSTANDARD = "LVCMOS18";         #Bank = 3, pin name = IO_L83P_3,    Sch name = BTN2
+    NET "BTN[3]"    LOC = AB9 | IOSTANDARD = "LVCMOS33";
 
 ## 7 Segment Display
-    #NET "SEG[0]"   LOC=AA21    |    IOSTANDARD=LVCMOS33;       #Bank = 1, pin name = IO_L63P_1,    Sch name = 7SD-AA
-    #NET "SEG[1]"   LOC=AA22    |    IOSTANDARD=LVCMOS33;          #Bank = 1, pin name = IO_L63N_1,    Sch name = 7SD-AB
-    #NET "SEG[2]"   LOC=Y22     |    IOSTANDARD=LVCMOS33;          #Bank = 1, pin name = IO_L59N_1,    Sch name = 7SD-AC
-    #NET "SEG[3]"   LOC=N15     |    IOSTANDARD=LVCMOS33;          #Bank = 1, pin name = IO_L60P_1,    Sch name = 7SD-AD
-    #NET "SEG[4]"   LOC=AB19    |    IOSTANDARD=LVCMOS33;          #Bank = 1, pin name = IO_L65P_1,    Sch name = 7SD-AE
-    #NET "SEG[5]"   LOC=P20     |    IOSTANDARD=LVCMOS33;          #Bank = 1, pin name = IO_L64N_1,    Sch name = 7SD-AF
-    #NET "SEG[6]"   LOC=Y21     |    IOSTANDARD=LVCMOS33;          #Bank = 1, pin name = IO_L59P_1,    Sch name = 7SD-AG
-    #NET dp    LOC=P15    		|    IOSTANDARD=LVCMOS33;                    #Bank = 1, pin name = IO_L62P_1,    Sch name = 7SD-DP
-    #NET "AN[1]"    LOC = P16   |    IOSTANDARD=LVCMOS33;        #Bank = 1, pin name = IO_L62N_1,    Sch name = 7SD-C1
-    #NET "AN[0]"    LOC = M17   |    IOSTANDARD=LVCMOS33;        #Bank = 1, pin name = IO_L58N_1,    Sch name = 7SD-C2
-    #NET "AN[3]"    LOC = N16   |    IOSTANDARD=LVCMOS33;        #Bank = 1, pin name = IO_L60N_1,    Sch name = 7SD-C3
-    #NET "AN[2]"    LOC = P19   |    IOSTANDARD=LVCMOS33;        #Bank = 1, pin name = IO_L64P_1,    Sch name = 7SD-C4
-    #NET "AN[5]"    LOC = AA20  |    IOSTANDARD=LVCMOS33;        #Bank = 1, pin name = IO_L61P_1,    Sch name = 7SD-C5
-    #NET "AN[4]"    LOC = AB21  |    IOSTANDARD=LVCMOS33;        #Bank = 1, pin name = IO_L61N_1,    Sch name = 7SD-C6
+    NET "SEG[0]"    LOC = AA21  |    IOSTANDARD=LVCMOS33;    #Bank = 1, pin name = IO_L63P_1,    Sch name = 7SD-AA
+    NET "SEG[1]"    LOC = AA22  |    IOSTANDARD=LVCMOS33;    #Bank = 1, pin name = IO_L63N_1,    Sch name = 7SD-AB
+    NET "SEG[2]"    LOC = Y22   |    IOSTANDARD=LVCMOS33;    #Bank = 1, pin name = IO_L59N_1,    Sch name = 7SD-AC
+    NET "SEG[3]"    LOC = N15   |    IOSTANDARD=LVCMOS33;    #Bank = 1, pin name = IO_L60P_1,    Sch name = 7SD-AD
+    NET "SEG[4]"    LOC = AB19  |    IOSTANDARD=LVCMOS33;    #Bank = 1, pin name = IO_L65P_1,    Sch name = 7SD-AE
+    NET "SEG[5]"    LOC = P20   |    IOSTANDARD=LVCMOS33;    #Bank = 1, pin name = IO_L64N_1,    Sch name = 7SD-AF
+    NET "SEG[6]"    LOC = Y21   |    IOSTANDARD=LVCMOS33;    #Bank = 1, pin name = IO_L59P_1,    Sch name = 7SD-AG
+    NET "SEG[7]"    LOC = P15   |    IOSTANDARD=LVCMOS33;    #Bank = 1, pin name = IO_L62P_1,    Sch name = 7SD-DP
+    NET "AN[1]"     LOC = P16   |    IOSTANDARD=LVCMOS33;    #Bank = 1, pin name = IO_L62N_1,    Sch name = 7SD-C1
+    NET "AN[0]"     LOC = M17   |    IOSTANDARD=LVCMOS33;    #Bank = 1, pin name = IO_L58N_1,    Sch name = 7SD-C2
+    NET "AN[3]"     LOC = N16   |    IOSTANDARD=LVCMOS33;    #Bank = 1, pin name = IO_L60N_1,    Sch name = 7SD-C3
+    NET "AN[2]"     LOC = P19   |    IOSTANDARD=LVCMOS33;    #Bank = 1, pin name = IO_L64P_1,    Sch name = 7SD-C4
+    NET "AN[5]"     LOC = AA20  |    IOSTANDARD=LVCMOS33;    #Bank = 1, pin name = IO_L61P_1,    Sch name = 7SD-C5
+    NET "AN[4]"     LOC = AB21  |    IOSTANDARD=LVCMOS33;    #Bank = 1, pin name = IO_L61N_1,    Sch name = 7SD-C6
 ## DIP Switches
     #NET "DIP_A1"    LOC = G6   |    IOSTANDARD=LVCMOS18;         #Bank = 3, pin name = IO_L74P_3,    Sch name = DIPA-1
     #NET "DIP_A2"    LOC = G4   |    IOSTANDARD=LVCMOS18;         #Bank = 3, pin name = IO_L74N_3,    Sch name = DIPA-2
