@@ -64,14 +64,14 @@
     #NET "DIP_B3"    LOC = C4   |    IOSTANDARD=LVCMOS18;         #Bank = 3, pin name = IO_L81P_3,    Sch name = DIPB-3
     #NET "DIP_B4"    LOC = D3   |    IOSTANDARD=LVCMOS18;         #Bank = 3, pin name = IO_L81N_3,    Sch name = DIPB-4
 ## Keypad
-    #NET "KYPD_COL[0]"    LOC = H8    |    IOSTANDARD=LVCMOS18;            #Bank = 3, pin name = IO_L58P_3,    Sch name = COL1
-    #NET "KYPD_COL[1]"    LOC = J7    |    IOSTANDARD=LVCMOS18;            #Bank = 3, pin name = IO_L58N_3,    Sch name = COL2
-    #NET "KYPD_COL[2]"    LOC = K8    |    IOSTANDARD=LVCMOS18;            #Bank = 3, pin name = IO_L59P_3,    Sch name = COL3
-    #NET "KYPD_COL[3]"    LOC = K7    |    IOSTANDARD=LVCMOS18;            #Bank = 3, pin name = IO_L59N_3,    Sch name = COL4
-    #NET "KYPD_ROW[0]"    LOC = E4    |    IOSTANDARD=LVCMOS18;        #Bank = 3, pin name = IO_L60P_3,    Sch name = ROW1
-    #NET "KYPD_ROW[1]"    LOC = F3    |    IOSTANDARD=LVCMOS18;        #Bank = 3, pin name = IO_L60N_3,    Sch name = ROW2
-    #NET "KYPD_ROW[2]"    LOC = G8    |    IOSTANDARD=LVCMOS18;        #Bank = 3, pin name = IO_L73P_3,    Sch name = ROW3
-    #NET "KYPD_ROW[3]"    LOC = G7    |    IOSTANDARD=LVCMOS18;         #Bank = 3, pin name = IO_L73N_3,    Sch name = ROW4
+    NET "KYPD_COL[0]"    LOC = H8    |    IOSTANDARD=LVCMOS18;            #Bank = 3, pin name = IO_L58P_3,    Sch name = COL1
+    NET "KYPD_COL[1]"    LOC = J7    |    IOSTANDARD=LVCMOS18;            #Bank = 3, pin name = IO_L58N_3,    Sch name = COL2
+    NET "KYPD_COL[2]"    LOC = K8    |    IOSTANDARD=LVCMOS18;            #Bank = 3, pin name = IO_L59P_3,    Sch name = COL3
+    NET "KYPD_COL[3]"    LOC = K7    |    IOSTANDARD=LVCMOS18;            #Bank = 3, pin name = IO_L59N_3,    Sch name = COL4
+    NET "KYPD_ROW[0]"    LOC = E4    |    IOSTANDARD=LVCMOS18;        #Bank = 3, pin name = IO_L60P_3,    Sch name = ROW1
+    NET "KYPD_ROW[1]"    LOC = F3    |    IOSTANDARD=LVCMOS18;        #Bank = 3, pin name = IO_L60N_3,    Sch name = ROW2
+    NET "KYPD_ROW[2]"    LOC = G8    |    IOSTANDARD=LVCMOS18;        #Bank = 3, pin name = IO_L73P_3,    Sch name = ROW3
+    NET "KYPD_ROW[3]"    LOC = G7    |    IOSTANDARD=LVCMOS18;         #Bank = 3, pin name = IO_L73N_3,    Sch name = ROW4
 ## OLED
     #NET    "OLED_SDIN"    LOC = C8        |    IOSTANDARD=LVCMOS33;        #Bank = 0, pin name = IO_L7N_0,    Sch name = OLED-SDIN
     #NET    "OLED_SCLK"    LOC = D7    |    IOSTANDARD=LVCMOS33;        #Bank = 0, pin name = IO_L7P_0,    Sch name = OLED-SCLK

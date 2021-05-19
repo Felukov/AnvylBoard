@@ -56,6 +56,9 @@ entity top is
         SEG                     : out std_logic_vector(7 downto 0);
         AN                      : out std_logic_vector(5 downto 0);
 
+        KYPD_COL                : out std_logic_vector(3 downto 0);
+        KYPD_ROW                : in std_logic_vector(3 downto 0);
+
         TFT_CLK_O               : out std_logic;
         TFT_VDDEN_O             : out std_logic;
         TFT_DE_O                : out std_logic;
@@ -133,7 +136,7 @@ architecture Behavioral of top is
         );
     end component;
 
-    COMPONENT tft
+    component tft
         generic (
             SIMULATION                  : string
         );
@@ -159,7 +162,7 @@ architecture Behavioral of top is
             rd_data_s_tready            : out std_logic;
             rd_data_s_tdata             : in std_logic_vector(127 downto 0)
         );
-    END COMPONENT;
+    end component;
 
     component vid_mem_gen is
         port (
@@ -274,8 +277,25 @@ architecture Behavioral of top is
             clk                         : in std_logic;
             resetn                      : in std_logic;
 
+            data_s_tvalid               : in std_logic;
+            data_s_taddr                : in std_logic_vector(2 downto 0);
+            data_s_tdata                : in std_logic_vector(3 downto 0);
+
             seg                         : out std_logic_vector(7 downto 0);
             an                          : out std_logic_vector(5 downto 0)
+        );
+    end component;
+
+    component keypad_reader is
+        port (
+            clk                         : in std_logic;
+            resetn                      : in std_logic;
+
+            keypd_row                   : in std_logic_vector(3 downto 0);
+            keypd_col                   : out std_logic_vector(3 downto 0);
+
+            key_m_tvalid                : out std_logic;
+            key_m_tdata                 : out std_logic_vector(3 downto 0)
         );
     end component;
 
@@ -339,6 +359,9 @@ architecture Behavioral of top is
 
     signal btn_0_push_up_tvalid         : std_logic;
     signal toggler_fl                   : std_logic;
+
+    signal key_pad_tvalid               : std_logic;
+    signal key_pad_tdata                : std_logic_vector(3 downto 0);
 
 begin
 
@@ -536,9 +559,24 @@ begin
         negedge_m_tvalid    => open
     );
 
+    keypad_reader_inst : keypad_reader port map (
+        clk                 => mem_clk,
+        resetn              => mem_calib_done,
+
+        keypd_col           => KYPD_COL,
+        keypd_row           => KYPD_ROW,
+
+        key_m_tvalid        => key_pad_tvalid,
+        key_m_tdata         => key_pad_tdata
+    );
+
     seven_seg_ctrl_inst : seven_seg_ctrl port map (
         clk                 => mem_clk,
         resetn              => mem_calib_done,
+
+        data_s_tvalid       => key_pad_tvalid,
+        data_s_taddr        => "000",
+        data_s_tdata        => key_pad_tdata,
 
         seg                 => SEG,
         an                  => AN

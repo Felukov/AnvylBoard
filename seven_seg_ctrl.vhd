@@ -10,6 +10,10 @@ entity seven_seg_ctrl is
         clk                 : in std_logic;
         resetn              : in std_logic;
 
+        data_s_tvalid       : in std_logic;
+        data_s_taddr        : in std_logic_vector(2 downto 0);
+        data_s_tdata        : in std_logic_vector(3 downto 0);
+
         seg                 : out std_logic_vector(7 downto 0);
         an                  : out std_logic_vector(5 downto 0)
     );
@@ -79,12 +83,22 @@ begin
         end if;
     end process;
 
-    data(0) <= x"A";
-    data(1) <= x"B";
-    data(2) <= x"C";
-    data(3) <= x"D";
-    data(4) <= x"E";
-    data(5) <= x"F";
+    data_writer : process (clk) begin
+        if rising_edge(clk) then
+            if resetn = '0' then
+                data(0) <= x"A";
+                data(1) <= x"B";
+                data(2) <= x"C";
+                data(3) <= x"D";
+                data(4) <= x"E";
+                data(5) <= x"F";
+            else
+                if (data_s_tvalid = '1') then
+                    data(to_integer(unsigned(data_s_taddr))) <= data_s_tdata;
+                end if;
+            end if;
+        end if;
+    end process;
 
     with data(sel) select seg_next(6 downto 0) <=
         "1000000" when "0000",   --0
