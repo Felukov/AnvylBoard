@@ -53,6 +53,9 @@ entity top is
         BTN                     : in std_logic_vector(3 downto 0);
         LED                     : out std_logic_vector(7 downto 0);
 
+        SEG                     : out std_logic_vector(7 downto 0);
+        AN                      : out std_logic_vector(5 downto 0);
+
         TFT_CLK_O               : out std_logic;
         TFT_VDDEN_O             : out std_logic;
         TFT_DE_O                : out std_logic;
@@ -266,6 +269,16 @@ architecture Behavioral of top is
         );
     end component;
 
+    component seven_seg_ctrl is
+        port (
+            clk                         : in std_logic;
+            resetn                      : in std_logic;
+
+            seg                         : out std_logic_vector(7 downto 0);
+            an                          : out std_logic_vector(5 downto 0)
+        );
+    end component;
+
     --Local signals
     signal sys_clk_ibufg                : std_logic;
     signal board_reset_delay_cnt        : integer range 0 to 7;
@@ -324,7 +337,7 @@ architecture Behavioral of top is
     signal pulse_tvalid                 : std_logic;
     signal pulse1ms_tvalid              : std_logic;
 
-    signal timer_cmd_tvalid             : std_logic;
+    signal btn_0_push_up_tvalid         : std_logic;
     signal toggler_fl                   : std_logic;
 
 begin
@@ -413,18 +426,17 @@ begin
 
     );
 
-    vid_mem_gen_inst: vid_mem_gen port map (
+    vid_mem_gen_inst : vid_mem_gen port map (
         clk                 => mem_clk,
         resetn              => mem_calib_done,
 
-        event_s_tvalid      => timer_cmd_tvalid,
+        event_s_tvalid      => btn_0_push_up_tvalid,
 
         wr_m_tvalid         => vid_gen_wr_tvalid,
         wr_m_tready         => vid_gen_wr_tready,
         wr_m_tlast          => vid_gen_wr_tlast,
         wr_m_tdata          => vid_gen_wr_tdata,
         wr_m_taddr          => vid_gen_wr_taddr
-
     );
 
     ddr2_interconnect_inst: ddr2_interconnect port map (
@@ -492,7 +504,7 @@ begin
     timer_inst : timer port map (
         clk_100             => mem_clk,
 
-        cmd_s_tvalid        => timer_cmd_tvalid,
+        cmd_s_tvalid        => btn_0_push_up_tvalid,
         cmd_s_tdata         => x"1388", --5 secs
         cmd_s_tuser         => '0',
 
@@ -500,16 +512,36 @@ begin
         pulse_m_tvalid      => pulse_tvalid
     );
 
-    debouncer_inst : debouncer port map (
+    debouncer_btn_0_inst : debouncer port map (
         clk                 => mem_clk,
         resetn              => mem_calib_done,
 
         pulse1ms_s_tvalid   => pulse1ms_tvalid,
         data_s_tvalid       => BTN(0),
 
-        data_m_tvalid       => LED(7),
+        data_m_tvalid       => LED(4),
         posedge_m_tvalid    => open,
-        negedge_m_tvalid    => timer_cmd_tvalid
+        negedge_m_tvalid    => btn_0_push_up_tvalid
+    );
+
+    debouncer_btn_1_inst : debouncer port map (
+        clk                 => mem_clk,
+        resetn              => mem_calib_done,
+
+        pulse1ms_s_tvalid   => pulse1ms_tvalid,
+        data_s_tvalid       => BTN(1),
+
+        data_m_tvalid       => LED(5),
+        posedge_m_tvalid    => open,
+        negedge_m_tvalid    => open
+    );
+
+    seven_seg_ctrl_inst : seven_seg_ctrl port map (
+        clk                 => mem_clk,
+        resetn              => mem_calib_done,
+
+        seg                 => SEG,
+        an                  => AN
     );
 
     internal_reset: process (sys_clk_ibufg) begin
@@ -540,7 +572,8 @@ begin
 
     read_rom: process (mem_clk) begin
         if (rising_edge(mem_clk)) then
-            LED(6 downto 2) <= "00000";
+            LED(3 downto 2) <= "00";
+            LED(7 downto 6) <= "00";
             LED(1) <= toggler_fl;
         end if;
     end process;
