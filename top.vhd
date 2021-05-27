@@ -299,6 +299,26 @@ architecture Behavioral of top is
         );
     end component;
 
+    component calc_ctrl is
+        port (
+            clk                         : in std_logic;
+            resetn                      : in std_logic;
+
+            key_pad_s_tvalid            : in std_logic;
+            key_pad_s_tdata             : in std_logic_vector(3 downto 0);
+
+            key_btn0_s_tvalid           : in std_logic;
+            key_btn1_s_tvalid           : in std_logic;
+            key_btn2_s_tvalid           : in std_logic;
+            key_btn3_s_tvalid           : in std_logic;
+
+            sseg_m_tvalid               : out std_logic;
+            sseg_m_tdata                : out std_logic_vector(3 downto 0);
+
+            led_m_tdata                 : out std_logic_vector(3 downto 0)
+        );
+    end component;
+
     --Local signals
     signal sys_clk_ibufg                : std_logic;
     signal board_reset_delay_cnt        : integer range 0 to 7;
@@ -358,6 +378,10 @@ architecture Behavioral of top is
     signal pulse1ms_tvalid              : std_logic;
 
     signal btn_0_push_up_tvalid         : std_logic;
+    signal btn_1_push_up_tvalid         : std_logic;
+    signal btn_2_push_up_tvalid         : std_logic;
+    signal btn_3_push_up_tvalid         : std_logic;
+
     signal toggler_fl                   : std_logic;
 
     signal key_pad_tvalid               : std_logic;
@@ -369,6 +393,7 @@ begin
         I  => CLK,
         O  => sys_clk_ibufg
     );
+
 
     -- Instantiate DDR2
     ddr2_inst: ddr2 generic map (
@@ -424,6 +449,7 @@ begin
         c3_p0_rd_error       => mem_rd_error
     );
 
+
     tft_inst: tft generic map (
         SIMULATION          => SIMULATION
     ) port map(
@@ -446,8 +472,8 @@ begin
         rd_data_s_tvalid    => tft_rd_data_tvalid,
         rd_data_s_tready    => tft_rd_data_tready,
         rd_data_s_tdata     => tft_rd_data_tdata
-
     );
+
 
     vid_mem_gen_inst : vid_mem_gen port map (
         clk                 => mem_clk,
@@ -461,6 +487,7 @@ begin
         wr_m_tdata          => vid_gen_wr_tdata,
         wr_m_taddr          => vid_gen_wr_taddr
     );
+
 
     ddr2_interconnect_inst: ddr2_interconnect port map (
         clk                 => mem_clk,
@@ -506,6 +533,7 @@ begin
         rd_error            => mem_rd_error
     );
 
+
     uart_rx_inst : uart_rx port map (
         clk                 => mem_clk,
         resetn              => mem_calib_done,
@@ -515,6 +543,7 @@ begin
         rx_m_tdata          => uart_tdata
     );
 
+
     uart_tx_inst : uart_tx port map (
         clk                 => mem_clk,
         resetn              => mem_calib_done,
@@ -523,6 +552,7 @@ begin
         tx_s_tdata          => uart_tdata,
         tx                  => RS232_UART_TX
     );
+
 
     timer_inst : timer port map (
         clk_100             => mem_clk,
@@ -535,6 +565,7 @@ begin
         pulse_m_tvalid      => pulse_tvalid
     );
 
+
     debouncer_btn_0_inst : debouncer port map (
         clk                 => mem_clk,
         resetn              => mem_calib_done,
@@ -542,10 +573,11 @@ begin
         pulse1ms_s_tvalid   => pulse1ms_tvalid,
         data_s_tvalid       => BTN(0),
 
-        data_m_tvalid       => LED(4),
+        data_m_tvalid       => open,
         posedge_m_tvalid    => open,
         negedge_m_tvalid    => btn_0_push_up_tvalid
     );
+
 
     debouncer_btn_1_inst : debouncer port map (
         clk                 => mem_clk,
@@ -554,10 +586,37 @@ begin
         pulse1ms_s_tvalid   => pulse1ms_tvalid,
         data_s_tvalid       => BTN(1),
 
-        data_m_tvalid       => LED(5),
+        data_m_tvalid       => open,
         posedge_m_tvalid    => open,
-        negedge_m_tvalid    => open
+        negedge_m_tvalid    => btn_1_push_up_tvalid
     );
+
+
+    debouncer_btn_2_inst : debouncer port map (
+        clk                 => mem_clk,
+        resetn              => mem_calib_done,
+
+        pulse1ms_s_tvalid   => pulse1ms_tvalid,
+        data_s_tvalid       => BTN(2),
+
+        data_m_tvalid       => open,
+        posedge_m_tvalid    => open,
+        negedge_m_tvalid    => btn_2_push_up_tvalid
+    );
+
+
+    debouncer_btn_3_inst : debouncer port map (
+        clk                 => mem_clk,
+        resetn              => mem_calib_done,
+
+        pulse1ms_s_tvalid   => pulse1ms_tvalid,
+        data_s_tvalid       => BTN(3),
+
+        data_m_tvalid       => open,
+        posedge_m_tvalid    => open,
+        negedge_m_tvalid    => btn_3_push_up_tvalid
+    );
+
 
     keypad_reader_inst : keypad_reader port map (
         clk                 => mem_clk,
@@ -569,6 +628,7 @@ begin
         key_m_tvalid        => key_pad_tvalid,
         key_m_tdata         => key_pad_tdata
     );
+
 
     seven_seg_ctrl_inst : seven_seg_ctrl port map (
         clk                 => mem_clk,
@@ -582,6 +642,26 @@ begin
         an                  => AN
     );
 
+
+    calc_ctrl_inst: calc_ctrl port map (
+        clk                 => mem_clk,
+        resetn              => mem_calib_done,
+
+        key_pad_s_tvalid    => key_pad_tvalid,
+        key_pad_s_tdata     => key_pad_tdata,
+
+        key_btn0_s_tvalid   => btn_0_push_up_tvalid,
+        key_btn1_s_tvalid   => btn_1_push_up_tvalid,
+        key_btn2_s_tvalid   => btn_2_push_up_tvalid,
+        key_btn3_s_tvalid   => btn_3_push_up_tvalid,
+
+        sseg_m_tvalid       => open,
+        sseg_m_tdata        => open,
+
+        led_m_tdata         => LED(7 downto 4)
+    );
+
+
     internal_reset: process (sys_clk_ibufg) begin
         if (rising_edge(sys_clk_ibufg)) then
             if (board_reset_delay_cnt = 7) then
@@ -593,6 +673,7 @@ begin
             end if;
         end if;
 	end process;
+
 
     timer_configuration_process: process (mem_clk) begin
         if rising_edge(mem_clk) then
@@ -608,13 +689,14 @@ begin
         end if;
     end process;
 
+
     read_rom: process (mem_clk) begin
         if (rising_edge(mem_clk)) then
             LED(3 downto 2) <= "00";
-            LED(7 downto 6) <= "00";
             LED(1) <= toggler_fl;
         end if;
     end process;
+
 
     leds_monitor: process(mem_clk) begin
         if (rising_edge(mem_clk)) then
@@ -633,6 +715,7 @@ begin
             -- end if;
         end if;
     end process;
+
 
     uart_rx_buf_process: process (mem_clk)  begin
         uart_rx_buf <= uart_rx_buf(1 downto 0) & RS232_UART_RX;

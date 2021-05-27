@@ -22,77 +22,86 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity axis_reg is
     generic (
-        TDATA_WIDTH         : natural := 32
+        DATA_WIDTH          : natural := 32
     );
     port (
-        clk                 : in  std_logic;
-        rst                 : in  std_logic;
-        axis_s_tvalid       : in  std_logic;
-        axis_s_tready       : out  std_logic;
-        axis_s_tdata        : in  std_logic_vector (TDATA_WIDTH-1 downto 0);
-        axis_m_tvalid       : out  std_logic;
-        axis_m_tready       : in  std_logic;
-        axis_m_tdata        : out  std_logic_vector (TDATA_WIDTH-1 downto 0)
+        clk                 : in std_logic;
+        resetn              : in std_logic;
+        in_s_tvalid         : in std_logic;
+        in_s_tready         : out std_logic;
+        in_s_tdata          : in std_logic_vector (DATA_WIDTH-1 downto 0);
+        out_m_tvalid        : out std_logic;
+        out_m_tready        : in std_logic;
+        out_m_tdata         : out std_logic_vector (DATA_WIDTH-1 downto 0)
     );
 end axis_reg;
 
-architecture Behavioral of axis_reg is
+architecture rtl of axis_reg is
 
-    signal tmp_in_tvalid    : std_logic;
-    signal tmp_in_tdata     : std_logic_vector(TDATA_WIDTH-1 downto 0);
-    signal buf_tvalid       : std_logic;
+    signal in_tvalid        : std_logic;
+    signal in_tready        : std_logic;
+    signal in_tdata         : std_logic_vector (DATA_WIDTH-1 downto 0);
+
+    signal tmp_tvalid       : std_logic;
+    signal tmp_tready       : std_logic;
+    signal tmp_tdata        : std_logic_vector(DATA_WIDTH-1 downto 0);
+
+    signal out_tvalid       : std_logic;
+    signal out_tready       : std_logic;
+    signal out_tdata        : std_logic_vector(DATA_WIDTH-1 downto 0);
 
 begin
+    in_tvalid <= in_s_tvalid;
+    in_s_tready <= in_tready;
+    in_tdata <= in_s_tdata;
 
-    axis_s_tready <= '1' when tmp_in_tvalid = '0' else '1';
+    out_m_tvalid <= out_tvalid;
+    out_tready <= out_m_tready;
+    out_m_tdata <= out_tdata;
+
+    in_tready <= '1' when tmp_tvalid = '0';
+    tmp_tready <= '1' when out_tvalid = '0' or (out_tvalid = '1' and out_tready = '1') else '0';
 
     tmp_buffer_process : process(clk) begin
         if (rising_edge(clk)) then
-            if (rst = '1') then
-                tmp_in_tvalid <= '0';
+            if (resetn = '0') then
+                tmp_tvalid <= '0';
             else
-                if (buf_tvalid = '0' or (buf_tvalid = '1' and axis_m_tready = '1')) then
-                    if (tmp_in_tvalid = '0') then
-                        tmp_in_tvalid <= axis_s_tvalid;
+                if in_tvalid = '1' and in_tready = '1' then
+                    if tmp_tready = '0' then
+                        tmp_tvalid <= '1';
                     else
-                        tmp_in_tvalid <= '0';
+                        tmp_tvalid <= '0';
                     end if;
+                elsif (tmp_tready = '1') then
+                    tmp_tvalid <= '0';
                 end if;
             end if;
-        end if;
-
-        if (tmp_in_tvalid = '0' and (buf_tvalid = '0' or (buf_tvalid = '1' and axis_m_tready = '1'))) then
-            tmp_in_tdata <= axis_s_tdata;
-        end if;
-
-    end process;
-
-    output_process : process(clk) begin
-        if (rising_edge(clk)) then
-            if (rst = '1') then
-                buf_tvalid <= '0';
-            else
-                if (buf_tvalid = '0' or (buf_tvalid = '1' and axis_m_tready = '1')) then
-                    if (tmp_in_tvalid = '1' or axis_s_tvalid = '1') then
-                        buf_tvalid <= '1';
-                    else
-                        buf_tvalid <= '0';
-                    end if;
-                elsif (axis_m_tready = '1') then
-                    buf_tvalid <= '0';
-                end if;
-            end if;
-        end if;
-
-        if (buf_tvalid = '0' or (buf_tvalid = '1' and axis_m_tready = '1')) then
-            if (tmp_in_tvalid = '1') then
-                axis_m_tdata <= tmp_in_tdata;
-            elsif (axis_s_tvalid = '1') then
-                axis_m_tdata <= axis_s_tdata;
+            if in_tvalid = '1' and in_tready = '1' then
+                tmp_tdata <= in_tdata;
             end if;
         end if;
     end process;
 
-    axis_m_tvalid <= buf_tvalid;
+    out_process : process (clk) begin
+        if rising_edge(clk) then
+            if resetn = '0' then
+                out_tvalid <= '1';
+            else
+                if (in_tvalid = '1' and in_tready = '1') or (tmp_tvalid = '1' and tmp_tready = '1') then
+                    out_tvalid <= '1';
+                elsif (out_tready = '1') then
+                    out_tvalid <= '0';
+                end if;
+            end if;
 
-end Behavioral;
+            if (tmp_tvalid = '1' and tmp_tready = '1') then
+                out_tdata <= tmp_tdata;
+            elsif (in_tvalid = '1' and in_tready = '1') then
+                out_tdata <= in_tdata;
+            end if;
+
+        end if;
+    end process;
+
+end rtl;

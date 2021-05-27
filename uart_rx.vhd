@@ -37,6 +37,7 @@ begin
     rx_m_tdata <= rx_tdata;
 
     rx_handling_process: process (clk) begin
+
         if rising_edge(clk) then
             if resetn = '0' then
                 rx_state <= RX_IDLE;
@@ -45,7 +46,6 @@ begin
                 rx_tvalid <= '0';
                 rx_tdata <= (others => '0');
             else
-
                 case rx_state is
                     when RX_START =>
                         if rx = '0' and rx_cnt = COUNTER_MAX/2-1 then
@@ -107,9 +107,9 @@ begin
                         end if;
 
                 end case;
-
             end if;
         end if;
+
     end process;
 
 end architecture;

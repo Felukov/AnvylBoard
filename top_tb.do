@@ -24,7 +24,7 @@ set StdArithNoWarnings 1
 #
 # Create work library
 #
-vdel -all
+#vdel -all
 vlib work
 
 #
