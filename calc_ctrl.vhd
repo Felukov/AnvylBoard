@@ -32,6 +32,9 @@ architecture rtl of calc_ctrl is
 
     constant EVENT_KEY_PAD  : std_logic_vector(3 downto 0) := x"4";
     constant EVENT_KEY0     : std_logic_vector(3 downto 0) := x"0";
+    constant EVENT_KEY1     : std_logic_vector(3 downto 0) := x"1";
+    constant EVENT_KEY2     : std_logic_vector(3 downto 0) := x"2";
+    constant EVENT_KEY3     : std_logic_vector(3 downto 0) := x"3";
 
     constant SSEG_DIGIT     : std_logic_vector(3 downto 0) := x"0";
     constant SSEG_NULL      : std_logic_vector(3 downto 0) := x"1";
@@ -88,6 +91,7 @@ architecture rtl of calc_ctrl is
     signal num_pos                  : natural range 0 to 5;
     signal active_num_full_fl       : std_logic;
     signal active_num_hex           : num_hex_t;
+    signal active_num_hex_show_fl   : std_logic_vector(5 downto 0);
     signal buffer_num_hex           : num_hex_t;
 
     signal key_pad_tvalid           : std_logic;
@@ -120,6 +124,8 @@ architecture rtl of calc_ctrl is
     signal event_type               : std_logic_vector(3 downto 0);
     signal event_completed          : std_logic;
     signal event_keypad_completed   : std_logic;
+    signal event_key0_completed     : std_logic;
+    signal event_key3_completed     : std_logic;
 
 begin
 
@@ -131,7 +137,9 @@ begin
     sseg_done_s_tvalid <= '1' when sseg_tvalid = '1' and sseg_loop_cnt = 5 else '0';
 
     event_keypad_completed <= '1' when (event_type = EVENT_KEY_PAD or event_type = EVENT_KEY0) and sseg_done_m_tvalid = '1' else '0';
-    event_completed <= '1' when event_keypad_completed = '1' else '0';
+    event_key0_completed <= '1' when (event_type = EVENT_KEY0) and sseg_done_m_tvalid = '1' else '0';
+    event_key3_completed <= '1' when (event_type = EVENT_KEY3) and sseg_done_m_tvalid = '1' else '0';
+    event_completed <= '1' when event_keypad_completed = '1' or event_key0_completed = '1' or event_key3_completed = '1' else '0';
 
     axis_reg_key_pad_inst : axis_reg generic map (
         DATA_WIDTH          => 4
@@ -261,7 +269,7 @@ begin
                 event_tready <= '1';
             else
                 if (event_tvalid = '1' and event_tready = '1') then
-                    if (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0) then
+                    if (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
                         event_tready <= '0';
                     end if;
                 elsif (event_tready = '0' and event_completed = '1') then
@@ -306,25 +314,26 @@ begin
 
             if resetn = '0' then
                 active_num_full_fl <= '0';
-                active_num_hex(0) <= x"1";
-                active_num_hex(1) <= x"2";
-                active_num_hex(2) <= x"3";
-                active_num_hex(3) <= x"4";
-                active_num_hex(4) <= x"5";
-                active_num_hex(5) <= x"6";
+                active_num_hex(0) <= x"0";
+                active_num_hex(1) <= x"0";
+                active_num_hex(2) <= x"0";
+                active_num_hex(3) <= x"0";
+                active_num_hex(4) <= x"0";
+                active_num_hex(5) <= x"0";
+                active_num_hex_show_fl <= "000001";
                 num_pos <= 0;
             else
                 if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY_PAD) then
-                    if (num_pos /= 5) then
+                    if (num_pos /= 5 and not (num_pos = 0 and event_tdata = x"0")) then
                         num_pos <= num_pos + 1;
                     end if;
-                elsif (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY0) then
+                elsif (event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3)) then
                     num_pos <= 0;
                 end if;
 
                 if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY_PAD and num_pos = 5) then
                     active_num_full_fl <= '1';
-                elsif (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY0) then
+                elsif (event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3)) then
                     active_num_full_fl <= '0';
                 end if;
 
@@ -335,14 +344,23 @@ begin
                     active_num_hex(2) <= active_num_hex(1);
                     active_num_hex(1) <= active_num_hex(0);
                     active_num_hex(0) <= event_tdata;
-                elsif (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY0) then
+                    if (num_pos > 0) then
+                        active_num_hex_show_fl <= active_num_hex_show_fl(4 downto 0) & "1";
+                    end if;
+                elsif (event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3)) then
                     active_num_hex(0) <= x"0";
                     active_num_hex(1) <= x"0";
                     active_num_hex(2) <= x"0";
                     active_num_hex(3) <= x"0";
                     active_num_hex(4) <= x"0";
                     active_num_hex(5) <= x"0";
+                    active_num_hex_show_fl <= "000001";
                 end if;
+
+                if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY3) then
+                    buffer_num_hex <= active_num_hex;
+                end if;
+
             end if;
 
         end if;
@@ -356,7 +374,7 @@ begin
                 sseg_loop_cnt <= 0;
                 sseg_tvalid <= '0';
             else
-                if event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0) then
+                if event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
                     sseg_loop_tvalid <= '1';
                 elsif (sseg_loop_tvalid = '1' and sseg_loop_cnt = 5) then
                     sseg_loop_tvalid <= '0';
@@ -374,8 +392,11 @@ begin
             sseg_tvalid <= sseg_loop_tvalid;
             sseg_taddr <= std_logic_vector(to_unsigned(sseg_loop_cnt, 3));
             sseg_tdata <= active_num_hex(sseg_loop_cnt);
-
-            sseg_tuser <= SSEG_DIGIT;
+            if (active_num_hex_show_fl(sseg_loop_cnt) = '1') then
+                sseg_tuser <= SSEG_DIGIT;
+            else
+                sseg_tuser <= SSEG_NULL;
+            end if;
 
         end if;
     end process;
