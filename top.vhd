@@ -280,6 +280,7 @@ architecture Behavioral of top is
             data_s_tvalid               : in std_logic;
             data_s_taddr                : in std_logic_vector(2 downto 0);
             data_s_tdata                : in std_logic_vector(3 downto 0);
+            data_s_tuser                : in std_logic_vector(3 downto 0);
 
             seg                         : out std_logic_vector(7 downto 0);
             an                          : out std_logic_vector(5 downto 0)
@@ -313,7 +314,9 @@ architecture Behavioral of top is
             key_btn3_s_tvalid           : in std_logic;
 
             sseg_m_tvalid               : out std_logic;
+            sseg_m_taddr                : out std_logic_vector(2 downto 0);
             sseg_m_tdata                : out std_logic_vector(3 downto 0);
+            sseg_m_tuser                : out std_logic_vector(3 downto 0);
 
             led_m_tdata                 : out std_logic_vector(3 downto 0)
         );
@@ -386,6 +389,11 @@ architecture Behavioral of top is
 
     signal key_pad_tvalid               : std_logic;
     signal key_pad_tdata                : std_logic_vector(3 downto 0);
+
+    signal sseg_tvalid                  : std_logic;
+    signal sseg_taddr                   : std_logic_vector(2 downto 0);
+    signal sseg_tdata                   : std_logic_vector(3 downto 0);
+    signal sseg_tuser                   : std_logic_vector(3 downto 0);
 
 begin
 
@@ -634,9 +642,10 @@ begin
         clk                 => mem_clk,
         resetn              => mem_calib_done,
 
-        data_s_tvalid       => key_pad_tvalid,
-        data_s_taddr        => "000",
-        data_s_tdata        => key_pad_tdata,
+        data_s_tvalid       => sseg_tvalid,
+        data_s_taddr        => sseg_taddr,
+        data_s_tdata        => sseg_tdata,
+        data_s_tuser        => sseg_tuser,
 
         seg                 => SEG,
         an                  => AN
@@ -655,8 +664,10 @@ begin
         key_btn2_s_tvalid   => btn_2_push_up_tvalid,
         key_btn3_s_tvalid   => btn_3_push_up_tvalid,
 
-        sseg_m_tvalid       => open,
-        sseg_m_tdata        => open,
+        sseg_m_tvalid       => sseg_tvalid,
+        sseg_m_taddr        => sseg_taddr,
+        sseg_m_tdata        => sseg_tdata,
+        sseg_m_tuser        => sseg_tuser,
 
         led_m_tdata         => LED(7 downto 4)
     );

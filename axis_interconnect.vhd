@@ -65,7 +65,6 @@ begin
     ch_in_tready <= '1' when ch_out_tvalid = '0' or (ch_out_tvalid = '1' and ch_out_tready = '1') else '0';
 
     channel_select_process: process (clk) begin
-
         if rising_edge(clk) then
             if resetn = '0' then
                 ch_in_locked <= '0';
@@ -90,7 +89,6 @@ begin
 
             end if;
         end if;
-
     end process;
 
     latching_output_process: process (clk) begin
@@ -109,7 +107,9 @@ begin
                     ch_out_tlast <= ch_in_tlast(active_ch);
                 end if;
             end if;
+        end if;
 
+        if rising_edge(clk) then
             if (ch_in_tvalid(active_ch) = '1' and ch_in_tready = '1') then
                 for i in 0 to CH_QTY-1 loop
                     if i = active_ch then
@@ -118,7 +118,6 @@ begin
                     end if;
                 end loop;
             end if;
-
         end if;
 
     end process;

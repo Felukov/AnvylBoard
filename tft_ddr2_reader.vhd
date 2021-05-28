@@ -107,11 +107,11 @@ begin
 
     forming_rd_cmd_signals_process: process (clk) begin
         if rising_edge(clk) then
+
             if resetn = '0' then
                 rd_cmd_tvalid <= '0';
                 rd_cmd_cnt <= 0;
             else
-
                 if (next_frame_tvalid = '1' and next_frame_tready = '1') then
                     rd_cmd_tvalid <= '1';
                 elsif (rd_cmd_tready = '1' and rd_cmd_cnt = 1) then
@@ -123,7 +123,6 @@ begin
                 elsif (rd_cmd_tvalid = '1' and rd_cmd_tready = '1') then
                     rd_cmd_cnt <= (rd_cmd_cnt + 1) mod 2;
                 end if;
-
             end if;
 
             if (next_frame_tvalid = '1' and next_frame_tready = '1') then
@@ -138,6 +137,7 @@ begin
 
     filter_data_process : process (clk) begin
         if rising_edge(clk) then
+
             if resetn = '0' then
                 filter_tvalid <= '0';
                 fifo_cnt <= 0;
@@ -167,11 +167,11 @@ begin
 
     forming_output_signals_process: process (clk) begin
         if rising_edge(clk) then
+
             if resetn = '0' then
                 rd_data_tvalid <= '0';
                 rd_data_idx <= 0;
             else
-
                 if filter_tvalid = '1' and filter_tready = '1' then
                     rd_data_tvalid <= '1';
                 elsif (rd_data_tready = '1' and rd_data_idx = 4) then
@@ -185,7 +185,6 @@ begin
                         rd_data_idx <= rd_data_idx + 1;
                     end if;
                 end if;
-
             end if;
 
             if filter_tvalid = '1' and filter_tready = '1' then

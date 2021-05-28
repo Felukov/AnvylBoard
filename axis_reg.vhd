@@ -86,7 +86,7 @@ begin
     out_process : process (clk) begin
         if rising_edge(clk) then
             if resetn = '0' then
-                out_tvalid <= '1';
+                out_tvalid <= '0';
             else
                 if (in_tvalid = '1' and in_tready = '1') or (tmp_tvalid = '1' and tmp_tready = '1') then
                     out_tvalid <= '1';

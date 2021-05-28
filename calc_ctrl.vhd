@@ -19,14 +19,23 @@ entity calc_ctrl is
         key_btn3_s_tvalid   : in std_logic;
 
         sseg_m_tvalid       : out std_logic;
+        sseg_m_taddr        : out std_logic_vector(2 downto 0);
         sseg_m_tdata        : out std_logic_vector(3 downto 0);
+        sseg_m_tuser        : out std_logic_vector(3 downto 0);
 
         led_m_tdata         : out std_logic_vector(3 downto 0)
     );
 end entity calc_ctrl;
 
 architecture rtl of calc_ctrl is
-    constant CH_QTY : natural range 0 to 5 := 5;
+    constant CH_QTY         : natural range 0 to 5 := 5;
+
+    constant EVENT_KEY_PAD  : std_logic_vector(3 downto 0) := x"4";
+    constant EVENT_KEY0     : std_logic_vector(3 downto 0) := x"0";
+
+    constant SSEG_DIGIT     : std_logic_vector(3 downto 0) := x"0";
+    constant SSEG_NULL      : std_logic_vector(3 downto 0) := x"1";
+    constant SSEG_MINUS     : std_logic_vector(3 downto 0) := x"2";
 
     type num_hex_t is array (natural range 0 to 5) of std_logic_vector(3 downto 0);
 
@@ -70,37 +79,59 @@ architecture rtl of calc_ctrl is
         );
     end component;
 
-    signal event_tvalid     : std_logic;
-    signal event_tready     : std_logic;
-    signal event_tlast      : std_logic;
-    signal event_tdata      : std_logic_vector(3 downto 0);
-    signal event_tuser      : std_logic_vector(3 downto 0);
+    signal event_tvalid             : std_logic;
+    signal event_tready             : std_logic;
+    signal event_tlast              : std_logic;
+    signal event_tdata              : std_logic_vector(3 downto 0);
+    signal event_tuser              : std_logic_vector(3 downto 0);
 
-    signal num_pos          : natural range 0 to 5;
-    signal active_num_hex   : num_hex_t;
-    signal buffer_num_hex   : num_hex_t;
+    signal num_pos                  : natural range 0 to 5;
+    signal active_num_full_fl       : std_logic;
+    signal active_num_hex           : num_hex_t;
+    signal buffer_num_hex           : num_hex_t;
 
-    signal key_pad_tvalid   : std_logic;
-    signal key_pad_tready   : std_logic;
-    signal key_pad_tdata    : std_logic_vector(3 downto 0);
+    signal key_pad_tvalid           : std_logic;
+    signal key_pad_tready           : std_logic;
+    signal key_pad_tdata            : std_logic_vector(3 downto 0);
 
-    signal key_btn0_tvalid  : std_logic;
-    signal key_btn0_tready  : std_logic;
-    signal key_btn1_tvalid  : std_logic;
-    signal key_btn1_tready  : std_logic;
-    signal key_btn2_tvalid  : std_logic;
-    signal key_btn2_tready  : std_logic;
-    signal key_btn3_tvalid  : std_logic;
-    signal key_btn3_tready  : std_logic;
+    signal key_btn0_tvalid          : std_logic;
+    signal key_btn0_tready          : std_logic;
+    signal key_btn1_tvalid          : std_logic;
+    signal key_btn1_tready          : std_logic;
+    signal key_btn2_tvalid          : std_logic;
+    signal key_btn2_tready          : std_logic;
+    signal key_btn3_tvalid          : std_logic;
+    signal key_btn3_tready          : std_logic;
 
-    signal inter_tvalid     : std_logic_vector(CH_QTY-1 downto 0);
-    signal inter_tready     : std_logic_vector(CH_QTY-1 downto 0);
-    signal inter_tdata      : std_logic_vector(4*CH_QTY-1 downto 0);
-    signal inter_tuser      : std_logic_vector(4*CH_QTY-1 downto 0);
+    signal inter_tvalid             : std_logic_vector(CH_QTY-1 downto 0);
+    signal inter_tready             : std_logic_vector(CH_QTY-1 downto 0);
+    signal inter_tdata              : std_logic_vector(4*CH_QTY-1 downto 0);
+    signal inter_tuser              : std_logic_vector(4*CH_QTY-1 downto 0);
+
+    signal sseg_loop_tvalid         : std_logic;
+    signal sseg_tvalid              : std_logic;
+    signal sseg_taddr               : std_logic_vector(2 downto 0);
+    signal sseg_tdata               : std_logic_vector(3 downto 0);
+    signal sseg_tuser               : std_logic_vector(3 downto 0);
+    signal sseg_loop_cnt            : natural range 0 to 5;
+    signal sseg_done_s_tvalid       : std_logic;
+    signal sseg_done_m_tvalid       : std_logic;
+
+    signal event_type               : std_logic_vector(3 downto 0);
+    signal event_completed          : std_logic;
+    signal event_keypad_completed   : std_logic;
 
 begin
 
-    event_tready <= '1';
+    sseg_m_tvalid <= sseg_tvalid;
+    sseg_m_taddr <= sseg_taddr;
+    sseg_m_tdata <= sseg_tdata;
+    sseg_m_tuser <= sseg_tuser;
+
+    sseg_done_s_tvalid <= '1' when sseg_tvalid = '1' and sseg_loop_cnt = 5 else '0';
+
+    event_keypad_completed <= '1' when (event_type = EVENT_KEY_PAD or event_type = EVENT_KEY0) and sseg_done_m_tvalid = '1' else '0';
+    event_completed <= '1' when event_keypad_completed = '1' else '0';
 
     axis_reg_key_pad_inst : axis_reg generic map (
         DATA_WIDTH          => 4
@@ -177,6 +208,22 @@ begin
         out_m_tdata         => open
     );
 
+    sseg_done_reg : axis_reg generic map (
+        DATA_WIDTH          => 4
+    ) port map (
+        clk                 => clk,
+        resetn              => resetn,
+
+        in_s_tvalid         => sseg_done_s_tvalid,
+        in_s_tready         => open,
+        in_s_tdata          => x"0",
+
+        out_m_tvalid        => sseg_done_m_tvalid,
+        out_m_tready        => event_completed,
+        out_m_tdata         => open
+    );
+
+
     inter_tvalid <= key_pad_tvalid & key_btn3_tvalid & key_btn2_tvalid & key_btn1_tvalid & key_btn0_tvalid;
     key_pad_tready <= inter_tready(4);
     key_btn3_tready <= inter_tready(3);
@@ -207,17 +254,36 @@ begin
         ch_out_m_tuser      => event_tuser
     );
 
-    sseg_m_tvalid <= '0';
-    sseg_m_tdata <= x"0";
+    ready_monitor_process: process (clk) begin
+        if rising_edge(clk) then
+
+            if resetn = '0' then
+                event_tready <= '1';
+            else
+                if (event_tvalid = '1' and event_tready = '1') then
+                    if (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0) then
+                        event_tready <= '0';
+                    end if;
+                elsif (event_tready = '0' and event_completed = '1') then
+                    event_tready <= '1';
+                end if;
+            end if;
+
+            if event_tvalid = '1' and event_tready = '1' then
+                event_type <= event_tuser;
+            end if;
+
+        end if;
+    end process;
 
     led_monitor_process: process (clk) begin
-
         if rising_edge(clk) then
+
             if resetn = '0' then
                 led_m_tdata <= "0000";
             else
                 if (event_tvalid = '1' and event_tready = '1') then
-                    if event_tuser = x"4" then
+                    if event_tuser = EVENT_KEY_PAD then
                         led_m_tdata <= event_tdata;
                     elsif event_tuser = x"0" then
                         led_m_tdata <= "0001";
@@ -230,10 +296,89 @@ begin
                     end if;
                 end if;
             end if;
-        end if;
 
+        end if;
     end process;
 
+
+    active_num_hex_update_process : process (clk) begin
+        if rising_edge(clk) then
+
+            if resetn = '0' then
+                active_num_full_fl <= '0';
+                active_num_hex(0) <= x"1";
+                active_num_hex(1) <= x"2";
+                active_num_hex(2) <= x"3";
+                active_num_hex(3) <= x"4";
+                active_num_hex(4) <= x"5";
+                active_num_hex(5) <= x"6";
+                num_pos <= 0;
+            else
+                if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY_PAD) then
+                    if (num_pos /= 5) then
+                        num_pos <= num_pos + 1;
+                    end if;
+                elsif (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY0) then
+                    num_pos <= 0;
+                end if;
+
+                if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY_PAD and num_pos = 5) then
+                    active_num_full_fl <= '1';
+                elsif (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY0) then
+                    active_num_full_fl <= '0';
+                end if;
+
+                if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY_PAD and active_num_full_fl = '0') then
+                    active_num_hex(5) <= active_num_hex(4);
+                    active_num_hex(4) <= active_num_hex(3);
+                    active_num_hex(3) <= active_num_hex(2);
+                    active_num_hex(2) <= active_num_hex(1);
+                    active_num_hex(1) <= active_num_hex(0);
+                    active_num_hex(0) <= event_tdata;
+                elsif (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY0) then
+                    active_num_hex(0) <= x"0";
+                    active_num_hex(1) <= x"0";
+                    active_num_hex(2) <= x"0";
+                    active_num_hex(3) <= x"0";
+                    active_num_hex(4) <= x"0";
+                    active_num_hex(5) <= x"0";
+                end if;
+            end if;
+
+        end if;
+    end process;
+
+    update_sseg_process : process (clk) begin
+        if rising_edge(clk) then
+
+            if (resetn = '0') then
+                sseg_loop_tvalid <= '0';
+                sseg_loop_cnt <= 0;
+                sseg_tvalid <= '0';
+            else
+                if event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0) then
+                    sseg_loop_tvalid <= '1';
+                elsif (sseg_loop_tvalid = '1' and sseg_loop_cnt = 5) then
+                    sseg_loop_tvalid <= '0';
+                end if;
+
+                if (sseg_loop_tvalid = '1') then
+                    if (sseg_loop_cnt = 5) then
+                        sseg_loop_cnt <= 0;
+                    else
+                        sseg_loop_cnt <= sseg_loop_cnt + 1;
+                    end if;
+                end if;
+            end if;
+
+            sseg_tvalid <= sseg_loop_tvalid;
+            sseg_taddr <= std_logic_vector(to_unsigned(sseg_loop_cnt, 3));
+            sseg_tdata <= active_num_hex(sseg_loop_cnt);
+
+            sseg_tuser <= SSEG_DIGIT;
+
+        end if;
+    end process;
 
     -- latch_event : process (clk) begin
 

@@ -24,7 +24,7 @@ set StdArithNoWarnings 1
 #
 # Create work library
 #
-#vdel -all
+vdel -all
 vlib work
 
 #
@@ -32,6 +32,8 @@ vlib work
 #
 
 #Compile files (excluding model parameter file)#
+vcom -explicit  -93 "axis_reg.vhd"
+vcom -explicit  -93 "axis_interconnect.vhd"
 vcom -explicit  -93 "ipcore_dir/clock_gen.vhd"
 vcom -explicit  -93 "ddr2.vhd"
 vcom -explicit  -93 "iodrp_controller.vhd"
@@ -54,6 +56,9 @@ vcom -explicit  -93 "uart_rx.vhd"
 vcom -explicit  -93 "uart_tx.vhd"
 vcom -explicit  -93 "timer.vhd"
 vcom -explicit  -93 "debouncer.vhd"
+vcom -explicit  -93 "calc_ctrl.vhd"
+vcom -explicit  -93 "keypad_reader.vhd"
+vcom -explicit  -93 "seven_seg_ctrl.vhd"
 vcom -explicit  -93 "top.vhd"
 vcom -explicit  -93 "top_tb.vhd"
 
