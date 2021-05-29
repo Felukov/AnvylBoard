@@ -16,25 +16,25 @@
 *         Note:  - Set simulator resolution to "ps" accuracy
 *                - Set Debug = 0 to disable $display messages
 *
-*   Disclaimer   This software code and all associated documentation, comments or other 
-*  of Warranty:  information (collectively "Software") is provided "AS IS" without 
-*                warranty of any kind. MICRON TECHNOLOGY, INC. ("MTI") EXPRESSLY 
-*                DISCLAIMS ALL WARRANTIES EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
-*                TO, NONINFRINGEMENT OF THIRD PARTY RIGHTS, AND ANY IMPLIED WARRANTIES 
-*                OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE. MTI DOES NOT 
-*                WARRANT THAT THE SOFTWARE WILL MEET YOUR REQUIREMENTS, OR THAT THE 
-*                OPERATION OF THE SOFTWARE WILL BE UNINTERRUPTED OR ERROR-FREE. 
-*                FURTHERMORE, MTI DOES NOT MAKE ANY REPRESENTATIONS REGARDING THE USE OR 
-*                THE RESULTS OF THE USE OF THE SOFTWARE IN TERMS OF ITS CORRECTNESS, 
-*                ACCURACY, RELIABILITY, OR OTHERWISE. THE ENTIRE RISK ARISING OUT OF USE 
-*                OR PERFORMANCE OF THE SOFTWARE REMAINS WITH YOU. IN NO EVENT SHALL MTI, 
-*                ITS AFFILIATED COMPANIES OR THEIR SUPPLIERS BE LIABLE FOR ANY DIRECT, 
-*                INDIRECT, CONSEQUENTIAL, INCIDENTAL, OR SPECIAL DAMAGES (INCLUDING, 
-*                WITHOUT LIMITATION, DAMAGES FOR LOSS OF PROFITS, BUSINESS INTERRUPTION, 
-*                OR LOSS OF INFORMATION) ARISING OUT OF YOUR USE OF OR INABILITY TO USE 
-*                THE SOFTWARE, EVEN IF MTI HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH 
-*                DAMAGES. Because some jurisdictions prohibit the exclusion or 
-*                limitation of liability for consequential or incidental damages, the 
+*   Disclaimer   This software code and all associated documentation, comments or other
+*  of Warranty:  information (collectively "Software") is provided "AS IS" without
+*                warranty of any kind. MICRON TECHNOLOGY, INC. ("MTI") EXPRESSLY
+*                DISCLAIMS ALL WARRANTIES EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+*                TO, NONINFRINGEMENT OF THIRD PARTY RIGHTS, AND ANY IMPLIED WARRANTIES
+*                OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE. MTI DOES NOT
+*                WARRANT THAT THE SOFTWARE WILL MEET YOUR REQUIREMENTS, OR THAT THE
+*                OPERATION OF THE SOFTWARE WILL BE UNINTERRUPTED OR ERROR-FREE.
+*                FURTHERMORE, MTI DOES NOT MAKE ANY REPRESENTATIONS REGARDING THE USE OR
+*                THE RESULTS OF THE USE OF THE SOFTWARE IN TERMS OF ITS CORRECTNESS,
+*                ACCURACY, RELIABILITY, OR OTHERWISE. THE ENTIRE RISK ARISING OUT OF USE
+*                OR PERFORMANCE OF THE SOFTWARE REMAINS WITH YOU. IN NO EVENT SHALL MTI,
+*                ITS AFFILIATED COMPANIES OR THEIR SUPPLIERS BE LIABLE FOR ANY DIRECT,
+*                INDIRECT, CONSEQUENTIAL, INCIDENTAL, OR SPECIAL DAMAGES (INCLUDING,
+*                WITHOUT LIMITATION, DAMAGES FOR LOSS OF PROFITS, BUSINESS INTERRUPTION,
+*                OR LOSS OF INFORMATION) ARISING OUT OF YOUR USE OF OR INABILITY TO USE
+*                THE SOFTWARE, EVEN IF MTI HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH
+*                DAMAGES. Because some jurisdictions prohibit the exclusion or
+*                limitation of liability for consequential or incidental damages, the
 *                above limitation may not apply to you.
 *
 *                Copyright 2003 Micron Technology, Inc. All rights reserved.
@@ -53,7 +53,7 @@
 * 2.70  JMK      04/30/04    Added tRFC maximum check.
 *                            Combined Self Refresh and Power Down always blocks.
 *                            Added Reset Function (CKE LOW Anytime).
-* 2.80  JMK      08/19/04    Precharge is treated as NOP when bank is not active.  
+* 2.80  JMK      08/19/04    Precharge is treated as NOP when bank is not active.
 *                            Added checks for tRAS, tWR, tRTP to any bank during Pre-All.
 *                            tRFC maximum violation will only display one time.
 * 2.90  JMK      11/05/04    Fixed DQS checking during write.
@@ -114,7 +114,7 @@
 *                            Increased internal width to 72 bit DQ bus
 * 5.80  SPH      08/12/09    Fixed tRAS maximum violation (only check if bank still open)
 * 5.81  SPH      12/08/09    Only check tIH for cmd_addr if CS# LOW
-* 5.82  SPH      04/08/10    Correct debug message for SRT in EMR2         
+* 5.82  SPH      04/08/10    Correct debug message for SRT in EMR2
 * 5.81  SPH      12/08/09    Only check tIH for cmd_addr if CS# LOW
 * 5.81  SPH      12/08/09    Only check tIH for cmd_addr if CS# LOW
 ****************************************************************************************/
@@ -167,7 +167,7 @@ module ddr2_model_c3 (
     inout   [DQS_BITS-1:0]  dqs_n;
     output  [DQS_BITS-1:0]  rdqs_n;
     input   odt;
-                            
+
     // clock jitter
     real    tck_avg;
     time    tck_sample [TDLLK-1:0];
@@ -289,7 +289,7 @@ module ddr2_model_c3 (
     reg     [ROW_BITS-1:0]  row_pipeline [`MAX_PIPE:0];
     reg     [COL_BITS-1:0]  col_pipeline [`MAX_PIPE:0];
     reg     prev_cke;
-    
+
     // data state
     reg     [BL_MAX*DQ_BITS-1:0] memory_data;
     reg     [BL_MAX*DQ_BITS-1:0] bit_mask;
@@ -404,7 +404,7 @@ module ddr2_model_c3 (
 
     wire    [17:0] dqs_even = dqs_in[17:0];
     wire    [17:0] dqs_odd  = dqs_n_en ? dqs_in[35:18] : ~dqs_in[17:0];
-    wire    [3:0]  cmd_n_in = !cs_n_in ? {ras_n_in, cas_n_in, we_n_in} : NOP;  //deselect = nop 
+    wire    [3:0]  cmd_n_in = !cs_n_in ? {ras_n_in, cas_n_in, we_n_in} : NOP;  //deselect = nop
 
     // transmit
     reg                    dqs_out_en;
@@ -427,9 +427,9 @@ module ddr2_model_c3 (
     bufif1 buf_dq     [DQ_BITS-1:0]  (dq,      dq_out_dly,   dq_out_en_dly  & {DQ_BITS {out_en}});
 
     initial begin
-        if (BL_MAX < 2) 
+        if (BL_MAX < 2)
             $display("%m ERROR: BL_MAX parameter must be >= 2.  \nBL_MAX = %d", BL_MAX);
-        if ((1<<BO_BITS) > BL_MAX) 
+        if ((1<<BO_BITS) > BL_MAX)
             $display("%m ERROR: 2^BO_BITS cannot be greater than BL_MAX parameter.");
         $timeformat (-12, 1, " ps", 1);
         reset_task;
@@ -537,7 +537,7 @@ module ddr2_model_c3 (
             cmd_task(0,       NOP, 'bx, 'bx);
         end
     endtask
-    
+
     task reset_task;
         integer i;
         begin
@@ -634,7 +634,7 @@ module ddr2_model_c3 (
             {1'b0, WRITE    , PWR_DOWN } : begin if ((ck_load_mode < ck_write) && (
                                                     |write_precharge_bank
                                                  || (ck_cntr - ck_write_ap < 1)
-                                                 || (ck_cntr - ck_write < write_latency + burst_length/2 + 2) 
+                                                 || (ck_cntr - ck_write < write_latency + burst_length/2 + 2)
                                                  || ($time - tm_write_end < TWTR)))                                                                                 begin $display ("%m: at time %t INFO: Write to Reset condition", $time);                         init_done = 0; end end
             {1'b1, READ     , PRECHARGE} : begin if ((ck_cntr - ck_bank_read[bank] < additive_latency + burst_length/2) || ($time - tm_bank_read_end[bank] < TRTP))       $display ("%m: at time %t ERROR:  tRTP violation during %s to bank %d", $time, cmd_string[cmd], bank);        end
             {1'b0, READ     , WRITE    } : begin if ((ck_load_mode < ck_read) && (ck_cntr - ck_read < read_latency + burst_length/2 + 1 - write_latency))                 $display ("%m: at time %t ERROR:  tRTW violation during %s to bank %d", $time, cmd_string[cmd], bank);        end
@@ -814,7 +814,7 @@ module ddr2_model_c3 (
                                         if (DEBUG) $display ("%m: at time %t INFO: %s %d DQS_N Enable = Enabled", $time, cmd_string[cmd], bank);
                                     end else begin
                                         $display ("%m: at time %t ERROR: %s %d Illegal DQS_N Enable = %d", $time, cmd_string[cmd], bank, dqs_n_en);
-                                    end 
+                                    end
                                     // RDQS Enable
                                     rdqs_en = addr[11];
                                     if (!rdqs_en) begin
@@ -828,7 +828,7 @@ module ddr2_model_c3 (
 `endif
                                     end else begin
                                         $display ("%m: at time %t ERROR: %s %d Illegal RDQS Enable = %d", $time, cmd_string[cmd], bank, rdqs_en);
-                                    end 
+                                    end
                                     // Output Enable
                                     out_en = !addr[12];
                                     if (!out_en) begin
@@ -837,7 +837,7 @@ module ddr2_model_c3 (
                                         if (DEBUG) $display ("%m: at time %t INFO: %s %d Output Enable = Enabled", $time, cmd_string[cmd], bank);
                                     end else begin
                                         $display ("%m: at time %t ERROR: %s %d Illegal Output Enable = %d", $time, cmd_string[cmd], bank, out_en);
-                                    end 
+                                    end
                                 end
                                 2 : begin
                                     // High Temperature Self Refresh rate
@@ -894,8 +894,8 @@ module ddr2_model_c3 (
                                 tm_precharge_all <= $time;
                             end
                         end else begin
-                            // A PRECHARGE command is allowed if there is no open row in that bank (idle state) 
-                            // or if the previously open row is already in the process of precharging. 
+                            // A PRECHARGE command is allowed if there is no open row in that bank (idle state)
+                            // or if the previously open row is already in the process of precharging.
                             // However, the precharge period will be determined by the last PRECHARGE command issued to the bank.
                             if (auto_precharge_bank[bank]) begin
                                 $display ("%m: at time %t ERROR: %s Failure.  Auto Precharge is scheduled to bank %d.", $time, cmd_string[cmd], bank);
@@ -937,7 +937,7 @@ module ddr2_model_c3 (
                             tm_bank_activate[bank] <= $time;
                             tm_activate <= $time;
                         end
-                        
+
                     end
                     WRITE : begin
                         if (!init_done) begin
@@ -1030,7 +1030,7 @@ module ddr2_model_c3 (
                 if (!init_done) begin
                     case (init_step)
                         0 : begin
-                            if ($time < 200000000) 
+                            if ($time < 200000000)
                                 $display ("%m: at time %t WARNING: 200 us is required before CKE goes active.", $time);
 //                          if (cmd_chk + 200000000 > $time)
 //                              $display("%m: at time %t WARNING: NOP or DESELECT is required for 200 us before CKE is brought high", $time);
@@ -1145,7 +1145,7 @@ module ddr2_model_c3 (
                     if (dll_locked && dq_in_valid) begin
                         tm_tdqss = abs_value(1.0*tm_ck_pos - tm_dqss_pos[i]);
                         if ((tm_tdqss < tck_avg/2.0) && (tm_tdqss > TDQSS*tck_avg))
-                            $display ("%m: at time %t ERROR: tDQSS violation on %s bit %d", $time, dqs_string[i/18], i%18); 
+                            $display ("%m: at time %t ERROR: tDQSS violation on %s bit %d", $time, dqs_string[i/18], i%18);
                     end
                     if (check_write_dqs_low[i])
                         $display ("%m: at time %t ERROR: %s bit %d latching edge required during the preceding clock period", $time, dqs_string[i/18], i%18);
@@ -1189,7 +1189,7 @@ module ddr2_model_c3 (
             end
             if (wdqs_cntr == WDQS_PST) begin // write postamble
                 check_write_postamble <= ({DQS_BITS{dqs_n_en}}<<18) | {DQS_BITS{1'b1}};
-            end 
+            end
             if (wdqs_cntr > 0) begin
                 wdqs_cntr = wdqs_cntr - 1;
             end
@@ -1246,7 +1246,7 @@ module ddr2_model_c3 (
             end else begin
                 dqs_out_en = 1'b0;
             end
-            
+
             // read dqs counter
             if (rd_pipeline[RDQS_PRE]) begin
                 rdqs_cntr = RDQS_PRE + burst_length + RDQS_PST - 1;
@@ -1357,11 +1357,11 @@ module ddr2_model_c3 (
         if (diff_ck) begin
             // check setup of command signals
             if ($time > TIS) begin
-                if ($time - tm_cke < TIS) 
+                if ($time - tm_cke < TIS)
                     $display ("%m: at time %t ERROR:   tIS violation on CKE by %t", $time, tm_cke + TIS - $time);
                 if (cke_in) begin
                     for (i=0; i<22; i=i+1) begin
-                        if ($time - tm_cmd_addr[i] < TIS) 
+                        if ($time - tm_cmd_addr[i] < TIS)
                             $display ("%m: at time %t ERROR:   tIS violation on %s by %t", $time, cmd_addr_string[i], tm_cmd_addr[i] + TIS - $time);
                     end
                 end
@@ -1399,7 +1399,7 @@ module ddr2_model_c3 (
                     // 2.  Additive Latency plus BL/2 cycles after Read command
                     // 3.  tRTP after the last 4-bit prefetch
                     if (read_precharge_bank[i]
-                        && ($time - tm_bank_activate[i] >= TRAS_MIN) 
+                        && ($time - tm_bank_activate[i] >= TRAS_MIN)
                         && (ck_cntr - ck_bank_read[i] >= additive_latency + burst_length/2)) begin
 
                         read_precharge_bank[i] = 0;
@@ -1483,27 +1483,27 @@ module ddr2_model_c3 (
                     end
 
                     // check tCK min/max/jitter
-                    if (abs_value(tjit_per_rtime) - TJIT_PER >= 1.0) 
+                    if (abs_value(tjit_per_rtime) - TJIT_PER >= 1.0)
                         $display ("%m: at time %t ERROR: tJIT(per) violation by %f ps.", $time, abs_value(tjit_per_rtime) - TJIT_PER);
-                    if (abs_value(tjit_cc_time) - TJIT_CC >= 1.0) 
+                    if (abs_value(tjit_cc_time) - TJIT_CC >= 1.0)
                         $display ("%m: at time %t ERROR: tJIT(cc) violation by %f ps.", $time, abs_value(tjit_cc_time) - TJIT_CC);
                     if (TCK_MIN - tck_avg >= 1.0)
                         $display ("%m: at time %t ERROR: tCK(avg) minimum violation by %f ps.", $time, TCK_MIN - tck_avg);
-                    if (tck_avg - TCK_MAX >= 1.0) 
+                    if (tck_avg - TCK_MAX >= 1.0)
                         $display ("%m: at time %t ERROR: tCK(avg) maximum violation by %f ps.", $time, tck_avg - TCK_MAX);
-                    if (tm_ck_pos + TCK_MIN - TJIT_PER > $time) 
+                    if (tm_ck_pos + TCK_MIN - TJIT_PER > $time)
                         $display ("%m: at time %t ERROR: tCK(abs) minimum violation by %t", $time, tm_ck_pos + TCK_MIN - TJIT_PER - $time);
-                    if (tm_ck_pos + TCK_MAX + TJIT_PER < $time) 
+                    if (tm_ck_pos + TCK_MAX + TJIT_PER < $time)
                         $display ("%m: at time %t ERROR: tCK(abs) maximum violation by %t", $time, $time - tm_ck_pos - TCK_MAX - TJIT_PER);
 
                     // check tCL
-                    if (tm_ck_neg + TCL_MIN*tck_avg - TJIT_DUTY > $time) 
+                    if (tm_ck_neg + TCL_MIN*tck_avg - TJIT_DUTY > $time)
                         $display ("%m: at time %t ERROR: tCL(abs) minimum violation on CLK by %t", $time, tm_ck_neg + TCL_MIN*tck_avg - TJIT_DUTY - $time);
-                    if (tm_ck_neg + TCL_MAX*tck_avg + TJIT_DUTY < $time) 
+                    if (tm_ck_neg + TCL_MAX*tck_avg + TJIT_DUTY < $time)
                         $display ("%m: at time %t ERROR: tCL(abs) maximum violation on CLK by %t", $time, $time - tm_ck_neg - TCL_MAX*tck_avg - TJIT_DUTY);
-                    if (tcl_avg < TCL_MIN*tck_avg) 
+                    if (tcl_avg < TCL_MIN*tck_avg)
                         $display ("%m: at time %t ERROR: tCL(avg) minimum violation on CLK by %t", $time, TCL_MIN*tck_avg - tcl_avg);
-                    if (tcl_avg > TCL_MAX*tck_avg) 
+                    if (tcl_avg > TCL_MAX*tck_avg)
                         $display ("%m: at time %t ERROR: tCL(avg) maximum violation on CLK by %t", $time, tcl_avg - TCL_MAX*tck_avg);
                 end
 
@@ -1524,13 +1524,13 @@ module ddr2_model_c3 (
             // clk pin is disabled during self refresh
             if (!in_self_refresh) begin
                 if (dll_locked) begin
-                    if (tm_ck_pos + TCH_MIN*tck_avg - TJIT_DUTY > $time) 
+                    if (tm_ck_pos + TCH_MIN*tck_avg - TJIT_DUTY > $time)
                         $display ("%m: at time %t ERROR: tCH(abs) minimum violation on CLK by %t", $time, tm_ck_pos + TCH_MIN*tck_avg - TJIT_DUTY + $time);
-                    if (tm_ck_pos + TCH_MAX*tck_avg + TJIT_DUTY < $time) 
+                    if (tm_ck_pos + TCH_MAX*tck_avg + TJIT_DUTY < $time)
                         $display ("%m: at time %t ERROR: tCH(abs) maximum violation on CLK by %t", $time, $time - tm_ck_pos - TCH_MAX*tck_avg - TJIT_DUTY);
-                    if (tch_avg < TCH_MIN*tck_avg) 
+                    if (tch_avg < TCH_MIN*tck_avg)
                         $display ("%m: at time %t ERROR: tCH(avg) minimum violation on CLK by %t", $time, TCH_MIN*tck_avg - tch_avg);
-                    if (tch_avg > TCH_MAX*tck_avg) 
+                    if (tch_avg > TCH_MAX*tck_avg)
                         $display ("%m: at time %t ERROR: tCH(avg) maximum violation on CLK by %t", $time, tch_avg - TCH_MAX*tck_avg);
                 end
 
@@ -1684,11 +1684,11 @@ module ddr2_model_c3 (
     always @(posedge dqs_odd[15]) dqs_odd_receiver(15);
     always @(posedge dqs_odd[16]) dqs_odd_receiver(16);
     always @(posedge dqs_odd[17]) dqs_odd_receiver(17);
- 
+
     // Processes to check hold and pulse width of control signals
     always @(cke_in) begin
         if ($time > TIH) begin
-            if ($time - tm_ck_pos < TIH) 
+            if ($time - tm_ck_pos < TIH)
                 $display ("%m: at time %t ERROR:  tIH violation on CKE by %t", $time, tm_ck_pos + TIH - $time);
         end
         if (dll_locked && ($time - tm_cke < $rtoi(TIPW*tck_avg)))
@@ -1697,7 +1697,7 @@ module ddr2_model_c3 (
     end
     always @(odt_in) begin
         if (odt_en && !in_self_refresh) begin
-            if ($time - tm_ck_pos < TIH) 
+            if ($time - tm_ck_pos < TIH)
                 $display ("%m: at time %t ERROR:  tIH violation on ODT by %t", $time, tm_ck_pos + TIH - $time);
             if (dll_locked && ($time - tm_odt < $rtoi(TIPW*tck_avg)))
                 $display ("%m: at time %t ERROR: tIPW violation on ODT by %t", $time, tm_odt + TIPW*tck_avg - $time);
@@ -1751,7 +1751,7 @@ module ddr2_model_c3 (
     reg [4:0] i;
     begin
         if (dqs_in_valid) begin
-            if ($time - tm_dqs[i] < TDH) 
+            if ($time - tm_dqs[i] < TDH)
                 $display ("%m: at time %t ERROR:   tDH violation on DM bit %d by %t", $time, i, tm_dqs[i] + TDH - $time);
             if (check_dm_tdipw[i]) begin
                 if (dll_locked && ($time - tm_dm[i] < $rtoi(TDIPW*tck_avg)))
@@ -1787,7 +1787,7 @@ module ddr2_model_c3 (
     reg [6:0] i;
     begin
         if (dqs_in_valid) begin
-            if ($time - tm_dqs[i/`DQ_PER_DQS] < TDH) 
+            if ($time - tm_dqs[i/`DQ_PER_DQS] < TDH)
                 $display ("%m: at time %t ERROR:   tDH violation on DQ bit %d by %t", $time, i, tm_dqs[i/`DQ_PER_DQS] + TDH - $time);
             if (check_dq_tdipw[i]) begin
                 if (dll_locked && ($time - tm_dq[i] < $rtoi(TDIPW*tck_avg)))
@@ -1796,7 +1796,7 @@ module ddr2_model_c3 (
         end
         check_dq_tdipw[i] <= 1'b0;
         tm_dq[i] = $time;
-    end 
+    end
     endtask
 
     always @(dq_in[ 0]) dq_timing_check( 0);
@@ -1891,11 +1891,11 @@ module ddr2_model_c3 (
                             $display ("%m: at time %t ERROR: tDQSL violation on %s bit %d", $time, dqs_string[i/18], i%18);
                     end
                 end
-                if ($time - tm_dm[i%18] < TDS) 
+                if ($time - tm_dm[i%18] < TDS)
                     $display ("%m: at time %t ERROR: tDS violation on DM bit %d by %t", $time, i,  tm_dm[i%18] + TDS - $time);
                 if (!dq_out_en) begin
                     for (j=0; j<`DQ_PER_DQS; j=j+1) begin
-                        if ($time - tm_dq[i*`DQ_PER_DQS+j] < TDS) 
+                        if ($time - tm_dq[i*`DQ_PER_DQS+j] < TDS)
                             $display ("%m: at time %t ERROR: tDS violation on DQ bit %d by %t", $time, i*`DQ_PER_DQS+j, tm_dq[i*`DQ_PER_DQS+j] + TDS - $time);
                         check_dq_tdipw[i*`DQ_PER_DQS+j] <= 1'b1;
                     end
@@ -1968,13 +1968,13 @@ module ddr2_model_c3 (
                     if ($time - tm_dqs_pos[i] < $rtoi(TDQSH*tck_avg))
                         $display ("%m: at time %t ERROR: tDQSH violation on %s bit %d", $time, dqs_string[i/18], i%18);
                     if ($time - tm_ck_pos < $rtoi(TDSH*tck_avg))
-                        $display ("%m: at time %t ERROR: tDSH violation on %s bit %d", $time, dqs_string[i/18], i%18); 
+                        $display ("%m: at time %t ERROR: tDSH violation on %s bit %d", $time, dqs_string[i/18], i%18);
                 end
-                if ($time - tm_dm[i%18] < TDS) 
+                if ($time - tm_dm[i%18] < TDS)
                     $display ("%m: at time %t ERROR: tDS violation on DM bit %d by %t", $time, i,  tm_dm[i%18] + TDS - $time);
                 if (!dq_out_en) begin
                     for (j=0; j<`DQ_PER_DQS; j=j+1) begin
-                        if ($time - tm_dq[i*`DQ_PER_DQS+j] < TDS) 
+                        if ($time - tm_dq[i*`DQ_PER_DQS+j] < TDS)
                             $display ("%m: at time %t ERROR: tDS violation on DQ bit %d by %t", $time, i*`DQ_PER_DQS+j, tm_dq[i*`DQ_PER_DQS+j] + TDS - $time);
                         check_dq_tdipw[i*`DQ_PER_DQS+j] <= 1'b1;
                     end

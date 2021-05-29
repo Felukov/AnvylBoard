@@ -18,12 +18,18 @@ entity calc_ctrl is
         key_btn2_s_tvalid   : in std_logic;
         key_btn3_s_tvalid   : in std_logic;
 
+        -- tft_upd_s_tvalid    : in std_logic;
+
         sseg_m_tvalid       : out std_logic;
         sseg_m_taddr        : out std_logic_vector(2 downto 0);
         sseg_m_tdata        : out std_logic_vector(3 downto 0);
         sseg_m_tuser        : out std_logic_vector(3 downto 0);
 
+        -- tft_m_tvalid        : out std_logic;
+        -- tft_m_tlast         : out std_logic;
+
         led_m_tdata         : out std_logic_vector(3 downto 0)
+
     );
 end entity calc_ctrl;
 
@@ -120,6 +126,11 @@ architecture rtl of calc_ctrl is
     signal sseg_loop_cnt            : natural range 0 to 5;
     signal sseg_done_s_tvalid       : std_logic;
     signal sseg_done_m_tvalid       : std_logic;
+
+    -- signal tft_loop_tvalid          : std_logic;
+    -- signal tft_loop_cnt             : natural range 0 to 11;
+    -- signal tft_tvalid               : std_logic;
+    -- signal tft_tlast                : std_logic;
 
     signal event_type               : std_logic_vector(3 downto 0);
     signal event_completed          : std_logic;
@@ -241,6 +252,7 @@ begin
     inter_tdata <= key_pad_tdata & x"0" & x"0" & x"0" & x"0";
     inter_tuser <= x"4" & x"3" & x"2" & x"1" & x"0";
 
+
     axis_interconnect_inst : axis_interconnect generic map (
         CH_QTY              => 5,
         DATA_WIDTH          => 4,
@@ -261,6 +273,7 @@ begin
         ch_out_m_tdata      => event_tdata,
         ch_out_m_tuser      => event_tuser
     );
+
 
     ready_monitor_process: process (clk) begin
         if rising_edge(clk) then
@@ -283,6 +296,7 @@ begin
 
         end if;
     end process;
+
 
     led_monitor_process: process (clk) begin
         if rising_edge(clk) then
@@ -366,6 +380,7 @@ begin
         end if;
     end process;
 
+
     update_sseg_process : process (clk) begin
         if rising_edge(clk) then
 
@@ -400,6 +415,33 @@ begin
 
         end if;
     end process;
+
+    -- update_tft_process : process (clk) begin
+    --     if rising_edge(clk) then
+
+    --         if resetn = '0' then
+    --             tft_loop_tvalid <= '0';
+    --             tft_loop_cnt <= 0;
+    --         else
+
+    --             if event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
+    --                 tft_loop_tvalid <= '1';
+    --             elsif (tft_loop_tvalid = '1' and tft_loop_cnt = 11) then
+    --                 tft_loop_tvalid <= '0';
+    --             end if;
+
+    --             if (tft_loop_tvalid = '1') then
+    --                 if (tft_loop_cnt = 11) then
+    --                     tft_loop_cnt <= 0;
+    --                 else
+    --                     tft_loop_cnt <= tft_loop_cnt + 1;
+    --                 end if;
+    --             end if;
+
+    --         end if;
+
+    --     end if;
+    -- end process;
 
     -- latch_event : process (clk) begin
 
