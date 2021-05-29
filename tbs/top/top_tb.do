@@ -24,7 +24,7 @@ set StdArithNoWarnings 1
 #
 # Create work library
 #
-vdel -all
+#vdel -all
 vlib work
 
 #
@@ -32,41 +32,47 @@ vlib work
 #
 
 #Compile files (excluding model parameter file)#
-vcom -explicit  -93 "axis_reg.vhd"
-vcom -explicit  -93 "axis_interconnect.vhd"
-vcom -explicit  -93 "ipcore_dir/clock_gen.vhd"
-vcom -explicit  -93 "ddr2.vhd"
-vcom -explicit  -93 "iodrp_controller.vhd"
-vcom -explicit  -93 "iodrp_mcb_controller.vhd"
-vcom -explicit  -93 "mcb_raw_wrapper.vhd"
-vcom -explicit  -93 "mcb_soft_calibration_top.vhd"
-vcom -explicit  -93 "mcb_soft_calibration.vhd"
-vcom -explicit  -93 "memc3_infrastructure.vhd"
-vcom -explicit  -93 "memc3_wrapper.vhd"
-vcom -explicit  -93 "ddr2_interconnect.vhd"
-vcom -explicit  -93 "vid_mem_sprite.vhd"
-vcom -explicit  -93 "vid_mem_gen.vhd"
-vcom -explicit  -93 "vid_mem_ctrl.vhd"
-vcom -explicit  -93 "tft_fifo.vhd"
-vcom -explicit  -93 "tft_ddr2_reader.vhd"
-vcom -explicit  -93 "tft_video_timing_gen.vhd"
-vcom -explicit  -93 "tft.vhd"
-vcom -explicit  -93 "pwm.vhd"
-vcom -explicit  -93 "uart_rx.vhd"
-vcom -explicit  -93 "uart_tx.vhd"
-vcom -explicit  -93 "timer.vhd"
-vcom -explicit  -93 "debouncer.vhd"
-vcom -explicit  -93 "calc_ctrl.vhd"
-vcom -explicit  -93 "keypad_reader.vhd"
-vcom -explicit  -93 "seven_seg_ctrl.vhd"
-vcom -explicit  -93 "top.vhd"
-vcom -explicit  -93 "top_tb.vhd"
+
+vcom -explicit  -93 "./src/utils/axis_reg.vhd"
+vcom -explicit  -93 "./src/utils/axis_interconnect.vhd"
+vcom -explicit  -93 "./src/utils/timer.vhd"
+vcom -explicit  -93 "./src/utils/debouncer.vhd"
+
+vcom -explicit  -93 "./src/ddr2/core/ddr2.vhd"
+vcom -explicit  -93 "./src/ddr2/core/iodrp_controller.vhd"
+vcom -explicit  -93 "./src/ddr2/core/iodrp_mcb_controller.vhd"
+vcom -explicit  -93 "./src/ddr2/core/mcb_raw_wrapper.vhd"
+vcom -explicit  -93 "./src/ddr2/core/mcb_soft_calibration_top.vhd"
+vcom -explicit  -93 "./src/ddr2/core/mcb_soft_calibration.vhd"
+vcom -explicit  -93 "./src/ddr2/core/memc3_infrastructure.vhd"
+vcom -explicit  -93 "./src/ddr2/core/memc3_wrapper.vhd"
+
+vcom -explicit  -93 "./src/ddr2/ddr2_interconnect.vhd"
+
+vcom -explicit  -93 "./src/vid_mem/vid_mem_sprite.vhd"
+vcom -explicit  -93 "./src/vid_mem/vid_mem_gen.vhd"
+
+vcom -explicit  -93 "./src/tft/tft_fifo.vhd"
+vcom -explicit  -93 "./src/tft/tft_ddr2_reader.vhd"
+vcom -explicit  -93 "./src/tft/tft_video_timing_gen.vhd"
+vcom -explicit  -93 "./src/tft/tft.vhd"
+vcom -explicit  -93 "./src/tft/pwm.vhd"
+
+vcom -explicit  -93 "./src/uart/uart_rx.vhd"
+vcom -explicit  -93 "./src/uart/uart_tx.vhd"
+
+vcom -explicit  -93 "./src/top/calc_ctrl.vhd"
+vcom -explicit  -93 "./src/top/keypad_reader.vhd"
+vcom -explicit  -93 "./src/top/seven_seg_ctrl.vhd"
+vcom -explicit  -93 "./src/top/top.vhd"
+
+vcom -explicit  -93 "./tbs/top/top_tb.vhd"
 
 #Additional files
 vlog $env(XILINX)/verilog/src/glbl.v
 
 #Pass the parameters for memory model parameter file#
-vlog  +incdir+. +define+x1Gb +define+sg25E +define+x16 "ddr2_model_c3.v"
+vlog  +incdir+. +define+x1Gb +define+sg25E +define+x16 "./tbs/top/ddr2_model_c3.v"
 
 #Load the design. Use required libraries.#
 vsim -t ps +notimingchecks -L unisim -L secureip work.top_tb glbl
@@ -74,7 +80,7 @@ vsim -t ps +notimingchecks -L unisim -L secureip work.top_tb glbl
 
 #add wave -position insertpoint sim:/top_tb/uut/vid_mem_gen_inst/*
 #add wave -position insertpoint sim:/top_tb/uut/ddr2_interconnect_inst/*
-do T:/Projects/AnvylBoard/wave.do
+do ./tbs/top/wave.do
 #
 # Run simulation for this time
 #

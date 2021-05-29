@@ -18,15 +18,16 @@ entity calc_ctrl is
         key_btn2_s_tvalid   : in std_logic;
         key_btn3_s_tvalid   : in std_logic;
 
-        -- tft_upd_s_tvalid    : in std_logic;
+        tft_upd_s_tvalid    : in std_logic;
 
         sseg_m_tvalid       : out std_logic;
         sseg_m_taddr        : out std_logic_vector(2 downto 0);
         sseg_m_tdata        : out std_logic_vector(3 downto 0);
         sseg_m_tuser        : out std_logic_vector(3 downto 0);
 
-        -- tft_m_tvalid        : out std_logic;
-        -- tft_m_tlast         : out std_logic;
+        tft_m_tvalid        : out std_logic;
+        tft_m_tready        : in std_logic;
+        tft_m_tlast         : out std_logic;
 
         led_m_tdata         : out std_logic_vector(3 downto 0)
 
@@ -127,10 +128,13 @@ architecture rtl of calc_ctrl is
     signal sseg_done_s_tvalid       : std_logic;
     signal sseg_done_m_tvalid       : std_logic;
 
-    -- signal tft_loop_tvalid          : std_logic;
-    -- signal tft_loop_cnt             : natural range 0 to 11;
-    -- signal tft_tvalid               : std_logic;
-    -- signal tft_tlast                : std_logic;
+    signal tft_loop_tvalid          : std_logic;
+    signal tft_loop_tready          : std_logic;
+    signal tft_loop_cnt             : natural range 0 to 11;
+    signal tft_tvalid               : std_logic;
+    signal tft_tready               : std_logic;
+    signal tft_tlast                : std_logic;
+    signal tft_upd_m_tvalid         : std_logic;
 
     signal event_type               : std_logic_vector(3 downto 0);
     signal event_completed          : std_logic;
@@ -145,11 +149,17 @@ begin
     sseg_m_tdata <= sseg_tdata;
     sseg_m_tuser <= sseg_tuser;
 
+    tft_m_tvalid <= tft_tvalid;
+    tft_tready <= tft_m_tready;
+    tft_m_tlast <= tft_tlast;
+
+    tft_loop_tready <= '1' when tft_tvalid = '0' or (tft_tvalid = '1' and tft_tready = '1') else '0';
+
     sseg_done_s_tvalid <= '1' when sseg_tvalid = '1' and sseg_loop_cnt = 5 else '0';
 
-    event_keypad_completed <= '1' when (event_type = EVENT_KEY_PAD or event_type = EVENT_KEY0) and sseg_done_m_tvalid = '1' else '0';
-    event_key0_completed <= '1' when (event_type = EVENT_KEY0) and sseg_done_m_tvalid = '1' else '0';
-    event_key3_completed <= '1' when (event_type = EVENT_KEY3) and sseg_done_m_tvalid = '1' else '0';
+    event_keypad_completed <= '1' when (event_type = EVENT_KEY_PAD or event_type = EVENT_KEY0) and sseg_done_m_tvalid = '1' and tft_upd_m_tvalid = '1' else '0';
+    event_key0_completed <= '1' when (event_type = EVENT_KEY0) and sseg_done_m_tvalid = '1' and tft_upd_m_tvalid = '1' else '0';
+    event_key3_completed <= '1' when (event_type = EVENT_KEY3) and sseg_done_m_tvalid = '1' and tft_upd_m_tvalid = '1' else '0';
     event_completed <= '1' when event_keypad_completed = '1' or event_key0_completed = '1' or event_key3_completed = '1' else '0';
 
     axis_reg_key_pad_inst : axis_reg generic map (
@@ -242,6 +252,20 @@ begin
         out_m_tdata         => open
     );
 
+    tft_upd_done_reg : axis_reg generic map (
+        DATA_WIDTH          => 4
+    ) port map (
+        clk                 => clk,
+        resetn              => resetn,
+
+        in_s_tvalid         => tft_upd_s_tvalid,
+        in_s_tready         => open,
+        in_s_tdata          => x"0",
+
+        out_m_tvalid        => tft_upd_m_tvalid,
+        out_m_tready        => event_completed,
+        out_m_tdata         => open
+    );
 
     inter_tvalid <= key_pad_tvalid & key_btn3_tvalid & key_btn2_tvalid & key_btn1_tvalid & key_btn0_tvalid;
     key_pad_tready <= inter_tready(4);
@@ -402,9 +426,10 @@ begin
                         sseg_loop_cnt <= sseg_loop_cnt + 1;
                     end if;
                 end if;
+
+                sseg_tvalid <= sseg_loop_tvalid;
             end if;
 
-            sseg_tvalid <= sseg_loop_tvalid;
             sseg_taddr <= std_logic_vector(to_unsigned(sseg_loop_cnt, 3));
             sseg_tdata <= active_num_hex(sseg_loop_cnt);
             if (active_num_hex_show_fl(sseg_loop_cnt) = '1') then
@@ -416,71 +441,49 @@ begin
         end if;
     end process;
 
-    -- update_tft_process : process (clk) begin
-    --     if rising_edge(clk) then
+    update_tft_process : process (clk) begin
+        if rising_edge(clk) then
 
-    --         if resetn = '0' then
-    --             tft_loop_tvalid <= '0';
-    --             tft_loop_cnt <= 0;
-    --         else
+            if resetn = '0' then
+                tft_loop_tvalid <= '0';
+                tft_loop_cnt <= 0;
 
-    --             if event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
-    --                 tft_loop_tvalid <= '1';
-    --             elsif (tft_loop_tvalid = '1' and tft_loop_cnt = 11) then
-    --                 tft_loop_tvalid <= '0';
-    --             end if;
+                tft_tvalid <= '0';
+                tft_tlast <= '0';
+            else
 
-    --             if (tft_loop_tvalid = '1') then
-    --                 if (tft_loop_cnt = 11) then
-    --                     tft_loop_cnt <= 0;
-    --                 else
-    --                     tft_loop_cnt <= tft_loop_cnt + 1;
-    --                 end if;
-    --             end if;
+                if event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
+                    tft_loop_tvalid <= '1';
+                elsif (tft_loop_tvalid = '1' and tft_loop_tready = '1' and tft_loop_cnt = 11) then
+                    tft_loop_tvalid <= '0';
+                end if;
 
-    --         end if;
+                if (tft_loop_tvalid = '1' and tft_loop_tready = '1') then
+                    if (tft_loop_cnt = 11) then
+                        tft_loop_cnt <= 0;
+                    else
+                        tft_loop_cnt <= tft_loop_cnt + 1;
+                    end if;
+                end if;
 
-    --     end if;
-    -- end process;
+                if (tft_loop_tvalid = '1' and tft_loop_tready = '1') then
+                    tft_tvalid <= '1';
+                elsif (tft_tready = '1') then
+                    tft_tvalid <= '0';
+                end if;
 
-    -- latch_event : process (clk) begin
+                if (tft_loop_tvalid = '1' and tft_loop_tready = '1') then
+                    if tft_loop_cnt = 11 then
+                        tft_tlast <= '1';
+                    else
+                        tft_tlast <= '0';
+                    end if;
+                end if;
 
-    --     if rising_edge(clk) then
-    --         if resetn = '0' then
-    --             event_tvalid <= '1';
-    --         else
-    --             event_tvalid <= key_pad_s_tvalid or key_btn0_s_tvalid or key_btn1_s_tvalid or key_btn2_s_tvalid or key_btn3_s_tvalid;
-    --         end if;
+            end if;
 
-    --         if key_pad_s_tvalid = '1' then
-    --             event_tdata <= key_pad_s_tdata;
-    --         end if;
-    --     end if;
+        end if;
+    end process;
 
-    -- end process;
-
-
-    -- handle_active_num_events : process (clk) begin
-
-    --     if rising_edge(clk) then
-    --         if resetn = '0' then
-    --             num_pos <= 0;
-    --         else
-    --             if event_tvalid = '1' then
-    --                 if num_pos = 5 then
-    --                     num_pos <= 0;
-    --                 else
-    --                     num_pos <= num_pos + 1;
-    --                 end if;
-    --             end if;
-
-    --             if event_tvalid = '1' then
-    --                 active_num_hex(num_pos) <= event_tdata;
-    --             end if;
-
-    --         end if;
-    --     end if;
-
-    -- end process;
 
 end architecture;

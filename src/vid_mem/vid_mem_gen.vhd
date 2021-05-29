@@ -11,6 +11,10 @@ entity vid_mem_gen is
         resetn                  : in std_logic;
 
         event_s_tvalid          : in std_logic;
+        event_s_tready          : out std_logic;
+        event_s_tlast           : in std_logic;
+
+        event_m_tvalid          : out std_logic;
 
         wr_m_tvalid             : out std_logic;
         wr_m_tready             : in std_logic;
@@ -279,6 +283,10 @@ architecture rtl of vid_mem_gen is
     signal x                    : integer range 0 to MAX_H-1;
     signal y                    : integer range 0 to MAX_V-1;
 
+    signal event_tvalid         : std_logic;
+    signal event_tready         : std_logic;
+    signal event_tlast          : std_logic;
+
     signal req_tvalid           : std_logic;
     signal req_tready           : std_logic;
 
@@ -337,6 +345,12 @@ begin
         glyph_line  => glyph_line
     );
 
+    event_tvalid    <= event_s_tvalid;
+    event_s_tready  <= event_tready;
+    event_tlast     <= event_s_tlast;
+
+    event_m_tvalid  <= '1' when event_tready = '0' and ddr_data_tvalid = '1' and ddr_data_tready = '1' and ddr_data_tlast = '1' else '0';
+
     wr_m_tvalid     <= wr_tvalid;
     wr_tready       <= wr_m_tready;
     wr_m_tlast      <= wr_tlast;
@@ -371,14 +385,21 @@ begin
         if rising_edge(clk) then
             if resetn = '0' then
                 upd_req_tvalid <= '0';
+                event_tready <= '1';
             else
-                if (event_s_tvalid = '1') then
+                if (event_tvalid = '1' and event_tready = '1' and event_tlast = '1') then
                     upd_req_tvalid <= '1';
                 else
                     upd_req_tvalid <= '0';
                 end if;
 
-                if (event_s_tvalid = '1') then
+                if (event_tvalid = '1' and event_tready = '1' and event_tlast = '1') then
+                    event_tready <= '0';
+                elsif (event_tready = '0' and ddr_data_tvalid = '1' and ddr_data_tready = '1' and ddr_data_tlast = '1') then
+                    event_tready <= '1';
+                end if;
+
+                if (event_tvalid = '1' and event_tready = '1') then
                     layout_ram(0) <= glyph_upd;
                 end if;
             end if;

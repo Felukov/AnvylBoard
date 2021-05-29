@@ -298,7 +298,7 @@ BEGIN
         wait;
     end process;
 
-   -- Stimulus process
+   -- Stimuli process
    stim_proc: process
    begin
         -- hold reset state for 200 ns.

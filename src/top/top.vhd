@@ -170,6 +170,10 @@ architecture Behavioral of top is
             resetn                      : in std_logic;
 
             event_s_tvalid              : in std_logic;
+            event_s_tready              : out std_logic;
+            event_s_tlast               : in std_logic;
+
+            event_m_tvalid              : out std_logic;
 
             wr_m_tvalid                 : out std_logic;
             wr_m_tready                 : in std_logic;
@@ -313,10 +317,16 @@ architecture Behavioral of top is
             key_btn2_s_tvalid           : in std_logic;
             key_btn3_s_tvalid           : in std_logic;
 
+            tft_upd_s_tvalid            : in std_logic;
+
             sseg_m_tvalid               : out std_logic;
             sseg_m_taddr                : out std_logic_vector(2 downto 0);
             sseg_m_tdata                : out std_logic_vector(3 downto 0);
             sseg_m_tuser                : out std_logic_vector(3 downto 0);
+
+            tft_m_tvalid                : out std_logic;
+            tft_m_tready                : in std_logic;
+            tft_m_tlast                 : out std_logic;
 
             led_m_tdata                 : out std_logic_vector(3 downto 0)
         );
@@ -389,6 +399,12 @@ architecture Behavioral of top is
 
     signal key_pad_tvalid               : std_logic;
     signal key_pad_tdata                : std_logic_vector(3 downto 0);
+
+    signal tft_vid_gen_tvalid           : std_logic;
+    signal tft_vid_gen_tready           : std_logic;
+    signal tft_vid_gen_tlast            : std_logic;
+
+    signal tft_upd_tvalid               : std_logic;
 
     signal sseg_tvalid                  : std_logic;
     signal sseg_taddr                   : std_logic_vector(2 downto 0);
@@ -487,13 +503,17 @@ begin
         clk                 => mem_clk,
         resetn              => mem_calib_done,
 
-        event_s_tvalid      => btn_0_push_up_tvalid,
+        event_s_tvalid      => tft_vid_gen_tvalid,
+        event_s_tready      => tft_vid_gen_tready,
+        event_s_tlast       => tft_vid_gen_tlast,
 
         wr_m_tvalid         => vid_gen_wr_tvalid,
         wr_m_tready         => vid_gen_wr_tready,
         wr_m_tlast          => vid_gen_wr_tlast,
         wr_m_tdata          => vid_gen_wr_tdata,
-        wr_m_taddr          => vid_gen_wr_taddr
+        wr_m_taddr          => vid_gen_wr_taddr,
+
+        event_m_tvalid      => tft_upd_tvalid
     );
 
 
@@ -664,10 +684,16 @@ begin
         key_btn2_s_tvalid   => btn_2_push_up_tvalid,
         key_btn3_s_tvalid   => btn_3_push_up_tvalid,
 
+        tft_upd_s_tvalid    => tft_upd_tvalid,
+
         sseg_m_tvalid       => sseg_tvalid,
         sseg_m_taddr        => sseg_taddr,
         sseg_m_tdata        => sseg_tdata,
         sseg_m_tuser        => sseg_tuser,
+
+        tft_m_tvalid        => tft_vid_gen_tvalid,
+        tft_m_tready        => tft_vid_gen_tready,
+        tft_m_tlast         => tft_vid_gen_tlast,
 
         led_m_tdata         => LED(7 downto 4)
     );
