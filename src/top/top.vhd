@@ -172,6 +172,8 @@ architecture Behavioral of top is
             event_s_tvalid              : in std_logic;
             event_s_tready              : out std_logic;
             event_s_tlast               : in std_logic;
+            event_s_tdata               : in std_logic_vector(55 downto 0);
+            event_s_tuser               : in std_logic_vector(6 downto 0);
 
             event_m_tvalid              : out std_logic;
 
@@ -327,6 +329,8 @@ architecture Behavioral of top is
             tft_m_tvalid                : out std_logic;
             tft_m_tready                : in std_logic;
             tft_m_tlast                 : out std_logic;
+            tft_m_tdata                 : out std_logic_vector(55 downto 0);
+            tft_m_tuser                 : out std_logic_vector(6 downto 0);
 
             led_m_tdata                 : out std_logic_vector(3 downto 0)
         );
@@ -403,6 +407,8 @@ architecture Behavioral of top is
     signal tft_vid_gen_tvalid           : std_logic;
     signal tft_vid_gen_tready           : std_logic;
     signal tft_vid_gen_tlast            : std_logic;
+    signal tft_vid_gen_tdata            : std_logic_vector(55 downto 0);
+    signal tft_vid_gen_tuser            : std_logic_vector(6 downto 0);
 
     signal tft_upd_tvalid               : std_logic;
 
@@ -506,6 +512,8 @@ begin
         event_s_tvalid      => tft_vid_gen_tvalid,
         event_s_tready      => tft_vid_gen_tready,
         event_s_tlast       => tft_vid_gen_tlast,
+        event_s_tdata       => tft_vid_gen_tdata,
+        event_s_tuser       => tft_vid_gen_tuser,
 
         wr_m_tvalid         => vid_gen_wr_tvalid,
         wr_m_tready         => vid_gen_wr_tready,
@@ -694,6 +702,8 @@ begin
         tft_m_tvalid        => tft_vid_gen_tvalid,
         tft_m_tready        => tft_vid_gen_tready,
         tft_m_tlast         => tft_vid_gen_tlast,
+        tft_m_tdata         => tft_vid_gen_tdata,
+        tft_m_tuser         => tft_vid_gen_tuser,
 
         led_m_tdata         => LED(7 downto 4)
     );

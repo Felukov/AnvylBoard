@@ -28,6 +28,8 @@ entity calc_ctrl is
         tft_m_tvalid        : out std_logic;
         tft_m_tready        : in std_logic;
         tft_m_tlast         : out std_logic;
+        tft_m_tdata         : out std_logic_vector(55 downto 0);
+        tft_m_tuser         : out std_logic_vector(6 downto 0);
 
         led_m_tdata         : out std_logic_vector(3 downto 0)
 
@@ -35,6 +37,7 @@ entity calc_ctrl is
 end entity calc_ctrl;
 
 architecture rtl of calc_ctrl is
+    -- Constants
     constant CH_QTY         : natural range 0 to 5 := 5;
 
     constant EVENT_KEY_PAD  : std_logic_vector(3 downto 0) := x"4";
@@ -47,7 +50,21 @@ architecture rtl of calc_ctrl is
     constant SSEG_NULL      : std_logic_vector(3 downto 0) := x"1";
     constant SSEG_MINUS     : std_logic_vector(3 downto 0) := x"2";
 
+    constant GL_NULL        : natural := 29;
+
+    constant NUM_START_POS  : natural := 12*2-1;
+
+    -- Types
     type num_hex_t is array (natural range 0 to 5) of std_logic_vector(3 downto 0);
+    type rgb_ch_t is (R, G, B);
+    type rgb_t is array (rgb_ch_t) of std_logic_vector(7 downto 0);
+
+    type rgb_vector_t is array(4 downto 0) of rgb_t;
+    type glyph_t is record
+        fg                      : rgb_t;
+        bg                      : rgb_t;
+        glyph                   : std_logic_vector(4 downto 0);
+    end record;
 
     component axis_reg is
         generic (
@@ -88,6 +105,20 @@ architecture rtl of calc_ctrl is
             ch_out_m_tuser  : out std_logic_vector(USER_WIDTH-1 downto 0)
         );
     end component;
+
+    function glyph_to_slv(glyph : glyph_t) return std_logic_vector is
+        variable vec : std_logic_vector (55 downto 0);
+    begin
+        vec(55 downto 48) := glyph.fg(R);
+        vec(47 downto 40) := glyph.fg(G);
+        vec(39 downto 32) := glyph.fg(B);
+        vec(31 downto 24) := glyph.bg(R);
+        vec(23 downto 16) := glyph.bg(G);
+        vec(15 downto  8) := glyph.bg(B);
+        vec( 7 downto  5) := "000";
+        vec( 4 downto  0) := glyph.glyph;
+        return vec;
+    end function;
 
     signal event_tvalid             : std_logic;
     signal event_tready             : std_logic;
@@ -134,6 +165,8 @@ architecture rtl of calc_ctrl is
     signal tft_tvalid               : std_logic;
     signal tft_tready               : std_logic;
     signal tft_tlast                : std_logic;
+    signal tft_tdata                : glyph_t;
+    signal tft_tuser                : std_logic_vector(6 downto 0);
     signal tft_upd_m_tvalid         : std_logic;
 
     signal event_type               : std_logic_vector(3 downto 0);
@@ -152,6 +185,8 @@ begin
     tft_m_tvalid <= tft_tvalid;
     tft_tready <= tft_m_tready;
     tft_m_tlast <= tft_tlast;
+    tft_m_tdata <= glyph_to_slv(tft_tdata);
+    tft_m_tuser <= tft_tuser;
 
     tft_loop_tready <= '1' when tft_tvalid = '0' or (tft_tvalid = '1' and tft_tready = '1') else '0';
 
@@ -480,6 +515,24 @@ begin
                     end if;
                 end if;
 
+            end if;
+
+            if (tft_loop_tvalid = '1' and tft_loop_tready = '1') then
+                tft_tdata.bg(R) <= x"00";
+                tft_tdata.bg(G) <= x"00";
+                tft_tdata.bg(B) <= x"00";
+
+                tft_tdata.fg(R) <= x"FF";
+                tft_tdata.fg(G) <= x"FF";
+                tft_tdata.fg(B) <= x"FF";
+
+                if (tft_loop_cnt < 6 and active_num_hex_show_fl(tft_loop_cnt) = '1') then
+                    tft_tdata.glyph <= '0' & active_num_hex(tft_loop_cnt);
+                else
+                    tft_tdata.glyph <= std_logic_vector(to_unsigned(GL_NULL, 5));
+                end if;
+
+                tft_tuser <= std_logic_vector(to_unsigned(NUM_START_POS - tft_loop_cnt, 7));
             end if;
 
         end if;

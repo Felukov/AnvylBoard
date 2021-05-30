@@ -13,6 +13,8 @@ entity vid_mem_gen is
         event_s_tvalid          : in std_logic;
         event_s_tready          : out std_logic;
         event_s_tlast           : in std_logic;
+        event_s_tdata           : in std_logic_vector(55 downto 0);
+        event_s_tuser           : in std_logic_vector(6 downto 0);
 
         event_m_tvalid          : out std_logic;
 
@@ -81,7 +83,7 @@ architecture rtl of vid_mem_gen is
         bg                      : rgb_t;
     end record;
 
-    type rom_t is array (natural range 0 to GLYPHS_CNT-1) of glyph_t;
+    type ram_t is array (natural range 0 to GLYPHS_CNT-1) of std_logic_vector(55 downto 0);
 
     component vid_mem_glyph is
         port (
@@ -108,171 +110,186 @@ architecture rtl of vid_mem_gen is
         return slv;
     end function;
 
-    impure function get_calc_layout return rom_t is
-        variable layout : rom_t;
+    function glyph_to_slv(glyph : glyph_t) return std_logic_vector is
+        variable vec : std_logic_vector (55 downto 0);
+    begin
+        vec(55 downto 48) := glyph.fg(R);
+        vec(47 downto 40) := glyph.fg(G);
+        vec(39 downto 32) := glyph.fg(B);
+        vec(31 downto 24) := glyph.bg(R);
+        vec(23 downto 16) := glyph.bg(G);
+        vec(15 downto  8) := glyph.bg(B);
+        vec( 7 downto  5) := "000";
+        vec( 4 downto  0) := glyph.glyph;
+        return vec;
+    end function;
+
+    impure function get_calc_layout return ram_t is
+        variable layout : ram_t;
+        variable item : glyph_t;
         variable idx : natural;
     begin
         idx := 0;
         for row in 0 to 7 loop
             for col in 0 to 11 loop
-                layout(idx).glyph := std_logic_vector(to_unsigned(GL_NULL, 5));
-                layout(idx).fg(R) := x"00";
-                layout(idx).fg(G) := x"00";
-                layout(idx).fg(B) := x"00";
-                layout(idx).bg(R) := x"00";
-                layout(idx).bg(G) := x"00";
-                layout(idx).bg(B) := x"00";
+                item.glyph := std_logic_vector(to_unsigned(GL_NULL, 5));
+                item.fg(R) := x"00";
+                item.fg(G) := x"00";
+                item.fg(B) := x"00";
+                item.bg(R) := x"00";
+                item.bg(G) := x"00";
+                item.bg(B) := x"00";
 
                 if (row = 1) then
                     if (col = 11) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_0, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_0, 5));
                     else
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_NULL, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_NULL, 5));
                     end if;
-                    layout(idx).fg(R) := x"00";
-                    layout(idx).fg(G) := x"FF";
-                    layout(idx).fg(B) := x"00";
-                    layout(idx).bg(R) := x"80";
-                    layout(idx).bg(G) := x"80";
-                    layout(idx).bg(B) := x"80";
+                    item.fg(R) := x"00";
+                    item.fg(G) := x"FF";
+                    item.fg(B) := x"00";
+                    item.bg(R) := x"80";
+                    item.bg(G) := x"80";
+                    item.bg(B) := x"80";
                 elsif (row = 3) then
                     if (col = 2) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_SHL, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_SHL, 5));
                     elsif (col = 3) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_AND, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_AND, 5));
                     elsif (col = 4) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_ADD, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_ADD, 5));
                     elsif (col = 6) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_1, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_1, 5));
                     elsif (col = 7) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_2, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_2, 5));
                     elsif (col = 8) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_3, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_3, 5));
                     elsif (col = 9) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_A, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_A, 5));
                     elsif (col = 11) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_BACK, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_BACK, 5));
                     end if;
 
                     if (col=2 or col=3 or col=4 or col=11) then
-                        layout(idx).fg(R) := x"FF";
-                        layout(idx).fg(G) := x"FF";
-                        layout(idx).fg(B) := x"FF";
-                        layout(idx).bg(R) := x"FF";
-                        layout(idx).bg(G) := x"99";
-                        layout(idx).bg(B) := x"33";
+                        item.fg(R) := x"FF";
+                        item.fg(G) := x"FF";
+                        item.fg(B) := x"FF";
+                        item.bg(R) := x"FF";
+                        item.bg(G) := x"99";
+                        item.bg(B) := x"33";
                     elsif (col=6 or col=7 or col=8 or col=9) then
-                        layout(idx).fg(R) := x"00";
-                        layout(idx).fg(G) := x"FF";
-                        layout(idx).fg(B) := x"00";
-                        layout(idx).bg(R) := x"00";
-                        layout(idx).bg(G) := x"00";
-                        layout(idx).bg(B) := x"00";
+                        item.fg(R) := x"00";
+                        item.fg(G) := x"FF";
+                        item.fg(B) := x"00";
+                        item.bg(R) := x"00";
+                        item.bg(G) := x"00";
+                        item.bg(B) := x"00";
                     end if;
 
                 elsif (row = 4) then
                     if (col = 2) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_SHR, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_SHR, 5));
                     elsif (col = 3) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_OR, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_OR, 5));
                     elsif (col = 4) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_SUB, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_SUB, 5));
                     elsif (col = 6) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_4, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_4, 5));
                     elsif (col = 7) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_5, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_5, 5));
                     elsif (col = 8) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_6, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_6, 5));
                     elsif (col = 9) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_B, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_B, 5));
                     elsif (col = 11) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_EQ, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_EQ, 5));
                     end if;
 
                     if (col=2 or col=3 or col=4 or col=11) then
-                        layout(idx).fg(R) := x"FF";
-                        layout(idx).fg(G) := x"FF";
-                        layout(idx).fg(B) := x"FF";
-                        layout(idx).bg(R) := x"FF";
-                        layout(idx).bg(G) := x"99";
-                        layout(idx).bg(B) := x"33";
+                        item.fg(R) := x"FF";
+                        item.fg(G) := x"FF";
+                        item.fg(B) := x"FF";
+                        item.bg(R) := x"FF";
+                        item.bg(G) := x"99";
+                        item.bg(B) := x"33";
                     elsif (col=6 or col=7 or col=8 or col=9) then
-                        layout(idx).fg(R) := x"00";
-                        layout(idx).fg(G) := x"FF";
-                        layout(idx).fg(B) := x"00";
-                        layout(idx).bg(R) := x"00";
-                        layout(idx).bg(G) := x"00";
-                        layout(idx).bg(B) := x"00";
+                        item.fg(R) := x"00";
+                        item.fg(G) := x"FF";
+                        item.fg(B) := x"00";
+                        item.bg(R) := x"00";
+                        item.bg(G) := x"00";
+                        item.bg(B) := x"00";
                     end if;
 
                 elsif (row = 5) then
                     if (col = 2) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_NEG, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_NEG, 5));
                     elsif (col = 3) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_XOR, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_XOR, 5));
                     elsif (col = 4) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_MUL, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_MUL, 5));
                     elsif (col = 6) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_7, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_7, 5));
                     elsif (col = 7) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_8, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_8, 5));
                     elsif (col = 8) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_9, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_9, 5));
                     elsif (col = 9) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_C, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_C, 5));
                     end if;
 
                     if (col=2 or col=3 or col=4) then
-                        layout(idx).fg(R) := x"FF";
-                        layout(idx).fg(G) := x"FF";
-                        layout(idx).fg(B) := x"FF";
-                        layout(idx).bg(R) := x"FF";
-                        layout(idx).bg(G) := x"99";
-                        layout(idx).bg(B) := x"33";
+                        item.fg(R) := x"FF";
+                        item.fg(G) := x"FF";
+                        item.fg(B) := x"FF";
+                        item.bg(R) := x"FF";
+                        item.bg(G) := x"99";
+                        item.bg(B) := x"33";
                     elsif (col=6 or col=7 or col=8 or col=9) then
-                        layout(idx).fg(R) := x"00";
-                        layout(idx).fg(G) := x"FF";
-                        layout(idx).fg(B) := x"00";
-                        layout(idx).bg(R) := x"00";
-                        layout(idx).bg(G) := x"00";
-                        layout(idx).bg(B) := x"00";
+                        item.fg(R) := x"00";
+                        item.fg(G) := x"FF";
+                        item.fg(B) := x"00";
+                        item.bg(R) := x"00";
+                        item.bg(G) := x"00";
+                        item.bg(B) := x"00";
                     end if;
 
                 elsif (row = 6) then
                     if (col = 2) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_NOT, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_NOT, 5));
                     elsif (col = 3) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_XOR, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_XOR, 5));
                     elsif (col = 4) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_DIV, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_DIV, 5));
                     elsif (col = 6) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_0, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_0, 5));
                     elsif (col = 7) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_F, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_F, 5));
                     elsif (col = 8) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_E, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_E, 5));
                     elsif (col = 9) then
-                        layout(idx).glyph := std_logic_vector(to_unsigned(GL_D, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_D, 5));
                     end if;
 
                     if (col=2 or col=3 or col=4) then
-                        layout(idx).fg(R) := x"FF";
-                        layout(idx).fg(G) := x"FF";
-                        layout(idx).fg(B) := x"FF";
-                        layout(idx).bg(R) := x"FF";
-                        layout(idx).bg(G) := x"99";
-                        layout(idx).bg(B) := x"33";
+                        item.fg(R) := x"FF";
+                        item.fg(G) := x"FF";
+                        item.fg(B) := x"FF";
+                        item.bg(R) := x"FF";
+                        item.bg(G) := x"99";
+                        item.bg(B) := x"33";
                     elsif (col=6 or col=7 or col=8 or col=9) then
-                        layout(idx).fg(R) := x"00";
-                        layout(idx).fg(G) := x"FF";
-                        layout(idx).fg(B) := x"00";
-                        layout(idx).bg(R) := x"00";
-                        layout(idx).bg(G) := x"00";
-                        layout(idx).bg(B) := x"00";
+                        item.fg(R) := x"00";
+                        item.fg(G) := x"FF";
+                        item.fg(B) := x"00";
+                        item.bg(R) := x"00";
+                        item.bg(G) := x"00";
+                        item.bg(B) := x"00";
                     end if;
 
                 end if;
-
+                layout(idx) := glyph_to_slv(item);
                 idx := idx + 1;
             end loop;
         end loop;
@@ -321,7 +338,7 @@ architecture rtl of vid_mem_gen is
     signal glyph_col_offset     : natural range 0 to GLYPHS_CNT-1;
     signal glyph_row            : natural range 0 to 7;
 
-    signal glyph_q              : glyph_t;
+    signal glyph_q              : std_logic_vector(55 downto 0);
     signal glyph_buf            : glyph_t;
 
     signal addr_base            : natural range 0 to GLYPHS_CNT*34-1;
@@ -331,11 +348,12 @@ architecture rtl of vid_mem_gen is
     signal colors2              : colors_t;
     signal colors3              : colors_t;
 
-    signal layout_ram           : rom_t := get_calc_layout;
+    signal layout_ram           : ram_t := get_calc_layout;
+    attribute ram_style         : string;
+    attribute ram_style of layout_ram: signal is "block";
 
     signal upd_req_tvalid       : std_logic;
 
-    signal glyph_upd            : glyph_t;
 
 begin
 
@@ -363,6 +381,7 @@ begin
     pixel_tready    <= '1' when ddr_data_tvalid = '0' or (ddr_data_tvalid = '1' and ddr_data_tready = '1') else '0';
     req_tready      <= '1' when pixel_tvalid = '0' or (pixel_tvalid = '1' and pixel_tready = '1') else '0';
 
+
     start_cnt_process: process (clk) begin
         if rising_edge(clk) then
             if resetn = '0' then
@@ -373,13 +392,6 @@ begin
         end if;
     end process;
 
-    glyph_upd.glyph <= std_logic_vector(to_unsigned(GL_OR, 5));
-    glyph_upd.fg(R) <= x"00";
-    glyph_upd.fg(G) <= x"FF";
-    glyph_upd.fg(B) <= x"00";
-    glyph_upd.bg(R) <= x"80";
-    glyph_upd.bg(G) <= x"80";
-    glyph_upd.bg(B) <= x"80";
 
     upd_layout: process (clk) begin
         if rising_edge(clk) then
@@ -399,12 +411,15 @@ begin
                     event_tready <= '1';
                 end if;
 
-                if (event_tvalid = '1' and event_tready = '1') then
-                    layout_ram(0) <= glyph_upd;
-                end if;
             end if;
+
+            if (event_tvalid = '1' and event_tready = '1') then
+                layout_ram(to_integer(unsigned(event_s_tuser))) <= event_s_tdata;
+            end if;
+
         end if;
     end process;
+
 
     forming_pixel_values: process (clk) begin
         if rising_edge(clk) then
@@ -420,7 +435,7 @@ begin
                 glyph_dot_col_rev <= 39;
                 glyph_col <= 0;
                 glyph_col_offset <= 0;
-                glyph_idx <= 0;
+                --glyph_idx <= 0;
             else
                 if (start_cnt(3) = '1' or upd_req_tvalid = '1') then
                     req_tvalid <= '1';
@@ -499,12 +514,17 @@ begin
                 end if;
             end if;
 
-
             if (req_tvalid = '1' and req_tready = '1') then
                 --0
                 glyph_q <= layout_ram(glyph_idx);
                 --1
-                glyph_buf <= glyph_q;
+                glyph_buf.fg(R) <= glyph_q(55 downto 48);
+                glyph_buf.fg(G) <= glyph_q(47 downto 40);
+                glyph_buf.fg(B) <= glyph_q(39 downto 32);
+                glyph_buf.bg(R) <= glyph_q(31 downto 24);
+                glyph_buf.bg(G) <= glyph_q(23 downto 16);
+                glyph_buf.bg(B) <= glyph_q(15 downto  8);
+                glyph_buf.glyph <= glyph_q( 4 downto  0);
                 --2
                 addr_base <= conv_integer(glyph_buf.glyph & "00000") + conv_integer(glyph_buf.glyph & "0");
                 colors1.fg <= glyph_buf.fg;
@@ -533,6 +553,7 @@ begin
 
         end if;
     end process;
+
 
     packing_data_for_ddr_process : process (clk) begin
         if rising_edge(clk) then
@@ -566,6 +587,7 @@ begin
 
         end if;
     end process;
+
 
     writing_data_to_ddr_fifo: process (clk) begin
         if rising_edge(clk) then

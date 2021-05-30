@@ -36,6 +36,8 @@ architecture rtl of calc_ctrl_tb is
             tft_m_tvalid                : out std_logic;
             tft_m_tready                : in std_logic;
             tft_m_tlast                 : out std_logic;
+            tft_m_tdata                 : out std_logic_vector(55 downto 0);
+            tft_m_tuser                 : out std_logic_vector(6 downto 0);
 
             led_m_tdata                 : out std_logic_vector(3 downto 0)
         );
@@ -58,7 +60,10 @@ architecture rtl of calc_ctrl_tb is
     signal tft_m_tvalid                 : std_logic := '0';
     signal tft_m_tready                 : std_logic := '1';
     signal tft_m_tlast                  : std_logic;
+    signal tft_m_tdata                  : std_logic_vector(55 downto 0);
+    signal tft_m_tuser                  : std_logic_vector(9 downto 0);
     signal led_m_tdata                  : std_logic_vector(3 downto 0);
+
 
 begin
 
@@ -79,6 +84,8 @@ begin
         tft_m_tvalid        => tft_m_tvalid,
         tft_m_tready        => tft_m_tready,
         tft_m_tlast         => tft_m_tlast,
+        tft_m_tdata         => tft_m_tdata,
+        tft_m_tuser         => tft_m_tuser,
 
         sseg_m_tvalid       => sseg_m_tvalid,
         sseg_m_taddr        => sseg_m_taddr,
