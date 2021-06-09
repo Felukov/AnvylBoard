@@ -59,27 +59,26 @@ begin
     out_tready <= out_m_tready;
     out_m_tdata <= out_tdata;
 
-    in_tready <= '1' when tmp_tvalid = '0';
+    in_tready <= '1' when tmp_tvalid = '0' else '0';
     tmp_tready <= '1' when out_tvalid = '0' or (out_tvalid = '1' and out_tready = '1') else '0';
 
     tmp_buffer_process : process(clk) begin
         if (rising_edge(clk)) then
+
             if (resetn = '0') then
                 tmp_tvalid <= '0';
             else
-                if in_tvalid = '1' and in_tready = '1' then
-                    if tmp_tready = '0' then
-                        tmp_tvalid <= '1';
-                    else
-                        tmp_tvalid <= '0';
-                    end if;
+                if in_tvalid = '1' and tmp_tvalid = '0' and tmp_tready = '0' then
+                    tmp_tvalid <= '1';
                 elsif (tmp_tready = '1') then
                     tmp_tvalid <= '0';
                 end if;
             end if;
-            if in_tvalid = '1' and in_tready = '1' then
+
+            if in_tvalid = '1' and tmp_tvalid = '0' and tmp_tready = '0' then
                 tmp_tdata <= in_tdata;
             end if;
+
         end if;
     end process;
 
@@ -97,7 +96,7 @@ begin
 
             if (tmp_tvalid = '1' and tmp_tready = '1') then
                 out_tdata <= tmp_tdata;
-            elsif (in_tvalid = '1' and in_tready = '1') then
+            elsif (in_tvalid = '1' and in_tready = '1' and tmp_tready = '1') then
                 out_tdata <= in_tdata;
             end if;
 

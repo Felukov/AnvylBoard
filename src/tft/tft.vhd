@@ -182,7 +182,7 @@ begin
         INIT                => X"000F"
     ) port map (
         CLK                 => clk_100,     -- Clock input
-        CE                  => '1',         -- Clock enable
+        CE                  => init_done,   -- Clock enable
         D                   => '0',         -- SRL data input
         A0                  => '1',         -- Select[0] input
         A1                  => '1',         -- Select[1] input
