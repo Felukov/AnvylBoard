@@ -1,4 +1,7 @@
 [libraries]
+unisim.files = [
+    'C:\Xilinx\14.7\ISE_DS\ISE\vhdl\src\unisims\unisim_VCOMP.vhd'
+]
 work.files = [
     '*.vhd',
     './src/ddr2/*.vhd',
@@ -7,9 +10,7 @@ work.files = [
     './src/utils/*.vhd',
     './src/top/*.vhd',
     './src/tft/*.vhd',
+    './src/touch/*.vhd',
     './src/vid_mem/*.vhd',
     './cpu/m68k_pkg.vhd'
-]
-UNISIM.files = [
-    'C:\Xilinx\14.7\ISE_DS\ISE\vhdl\src\unisims\unisim_VCOMP.vhd'
 ]

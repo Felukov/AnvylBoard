@@ -126,7 +126,6 @@ begin
 
         vid_gen_wr_tready <= '1';
         wait for CLK_PERIOD;
-
     end process;
 
     -- -- TFT UPD Call Back

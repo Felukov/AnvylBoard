@@ -241,12 +241,12 @@
     NET "TFT_R_O[5]"    LOC = J19   | IOSTANDARD = "LVCMOS33" | OUT_TERM = UNTUNED_75;    #Bank = 1, pin name = IO_L38N_A4_M1CLKN_1,          Sch name = TFT-R5
     NET "TFT_R_O[6]"    LOC = J17   | IOSTANDARD = "LVCMOS33" | OUT_TERM = UNTUNED_75;    #Bank = 1, pin name = IO_L38P_A5_M1CLK_1,           Sch name = TFT-R6
     NET "TFT_R_O[7]"    LOC = C20   | IOSTANDARD = "LVCMOS33" | OUT_TERM = UNTUNED_75;    #Bank = 1, pin name = IO_L35P_A11_M1A7_1,           Sch name = TFT-R7
-    #NET "TP_BUSY_I"        LOC ="M19"    |    IOSTANDARD=LVCMOS33;                                  #Bank = 1, pin name = IO_L41N_GCLK8_M1CASN_1,       Sch name = TFT-BUSY
-    #NET "TP_CS_O"          LOC ="M20"    |    IOSTANDARD=LVCMOS33    |    OUT_TERM = UNTUNED_75;    #Bank = 1, pin name = IO_L46N_FOE_B_M1DQ3_1,        Sch name = TFT-CS
-    #NET "TP_DCLK_O"        LOC ="K21"    |    IOSTANDARD=LVCMOS33    |    OUT_TERM = UNTUNED_75;    #Bank = 1, pin name = IO_L44P_A3_M1DQ6_1,           Sch name = TFT-DCLK
-    #NET "TP_DIN_O"         LOC ="U20"    |    IOSTANDARD=LVCMOS33    |    OUT_TERM = UNTUNED_75;    #Bank = 1, pin name = IO_L51P_M1DQ12_1,             Sch name = TFT-DIN
-    #NET "TP_DOUT_I"        LOC ="M18"    |    IOSTANDARD=LVCMOS33;                                  #Bank = 1, pin name = IO_L41P_GCLK9_IRDY1_M1RASN_1, Sch name = TFT-DOUT
-    #NET "TP_PENIRQ_I"      LOC ="N20"    |    IOSTANDARD=LVCMOS33;                                  #Bank = 1, pin name = IO_L47P_FWE_B_M1DQ0_1,        Sch name = TFT-PEN
+    NET "TP_BUSY_I"     LOC ="M19"  |    IOSTANDARD=LVCMOS33;                             #Bank = 1, pin name = IO_L41N_GCLK8_M1CASN_1,       Sch name = TFT-BUSY
+    NET "TP_CS_O"       LOC ="M20"  |    IOSTANDARD=LVCMOS33  | OUT_TERM = UNTUNED_75;    #Bank = 1, pin name = IO_L46N_FOE_B_M1DQ3_1,        Sch name = TFT-CS
+    NET "TP_DCLK_O"     LOC ="K21"  |    IOSTANDARD=LVCMOS33  | OUT_TERM = UNTUNED_75;    #Bank = 1, pin name = IO_L44P_A3_M1DQ6_1,           Sch name = TFT-DCLK
+    NET "TP_DIN_O"      LOC ="U20"  |    IOSTANDARD=LVCMOS33  | OUT_TERM = UNTUNED_75;    #Bank = 1, pin name = IO_L51P_M1DQ12_1,             Sch name = TFT-DIN
+    NET "TP_DOUT_I"     LOC ="M18"  |    IOSTANDARD=LVCMOS33;                             #Bank = 1, pin name = IO_L41P_GCLK9_IRDY1_M1RASN_1, Sch name = TFT-DOUT
+    NET "TP_PENIRQ_I"   LOC ="N20"  |    IOSTANDARD=LVCMOS33;                             #Bank = 1, pin name = IO_L47P_FWE_B_M1DQ0_1,        Sch name = TFT-PEN
     #INST "TFT_R_O[7]" TNM = "TFT_PIXEL_BUS";
     #INST "TFT_R_O[0]" TNM = "TFT_PIXEL_BUS";
     #INST "TFT_R_O[1]" TNM = "TFT_PIXEL_BUS";

@@ -68,6 +68,13 @@ entity top is
         TFT_G_O                 : out std_logic_vector(7 downto 0);
         TFT_B_O                 : out std_logic_vector(7 downto 0);
 
+        TP_CS_O                 : out STD_LOGIC;
+        TP_DIN_O                : out STD_LOGIC;
+        TP_DOUT_I               : in STD_LOGIC;
+        TP_DCLK_O               : out STD_LOGIC;
+        TP_BUSY_I               : in STD_LOGIC;
+        TP_PENIRQ_I             : in STD_LOGIC;
+
         RS232_UART_TX           : out std_logic;
         RS232_UART_RX           : in std_logic
     );
@@ -319,6 +326,10 @@ architecture Behavioral of top is
             key_btn2_s_tvalid           : in std_logic;
             key_btn3_s_tvalid           : in std_logic;
 
+            touch_s_tvalid              : in std_logic;
+            touch_s_tdata               : in std_logic_vector(11 downto 0);
+            touch_s_tuser               : in std_logic_vector(1 downto 0);
+
             tft_upd_s_tvalid            : in std_logic;
 
             sseg_m_tvalid               : out std_logic;
@@ -333,6 +344,24 @@ architecture Behavioral of top is
             tft_m_tuser                 : out std_logic_vector(6 downto 0);
 
             led_m_tdata                 : out std_logic_vector(3 downto 0)
+        );
+    end component;
+
+    component touch_ctrl is
+        port (
+            -- Control/Data Signals,
+            clk                         : in std_logic;        -- FPGA Clock
+            resetn                      : in std_logic;        -- FPGA Reset
+
+            touch_m_tvalid              : out std_logic;
+            touch_m_tdata               : out std_logic_vector(11 downto 0);
+            touch_m_tuser               : out std_logic_vector(1 downto 0);
+
+            -- SPI Interface
+            CSn                         : out std_logic;
+            SCK                         : out std_logic;
+            SDI                         : in std_logic;
+            SDO                         : out std_logic
         );
     end component;
 
@@ -416,6 +445,10 @@ architecture Behavioral of top is
     signal sseg_taddr                   : std_logic_vector(2 downto 0);
     signal sseg_tdata                   : std_logic_vector(3 downto 0);
     signal sseg_tuser                   : std_logic_vector(3 downto 0);
+
+    signal touch_tvalid                 : std_logic;
+    signal touch_tdata                  : std_logic_vector(11 downto 0);
+    signal touch_tuser                  : std_logic_vector(1 downto 0);
 
 begin
 
@@ -680,6 +713,20 @@ begin
     );
 
 
+    touch_ctrl_inst: touch_ctrl port map (
+        clk                 => mem_clk,
+        resetn              => mem_calib_done,
+
+        touch_m_tvalid      => touch_tvalid,
+        touch_m_tdata       => touch_tdata,
+        touch_m_tuser       => touch_tuser,
+        -- SPI Interface
+        CSn                 => TP_CS_O,
+        SCK                 => TP_DCLK_O,
+        SDI                 => TP_DOUT_I,
+        SDO                 => TP_DIN_O
+    );
+
     calc_ctrl_inst: calc_ctrl port map (
         clk                 => mem_clk,
         resetn              => mem_calib_done,
@@ -691,6 +738,10 @@ begin
         key_btn1_s_tvalid   => btn_1_push_up_tvalid,
         key_btn2_s_tvalid   => btn_2_push_up_tvalid,
         key_btn3_s_tvalid   => btn_3_push_up_tvalid,
+
+        touch_s_tvalid      => touch_tvalid,
+        touch_s_tdata       => touch_tdata,
+        touch_s_tuser       => touch_tuser,
 
         tft_upd_s_tvalid    => tft_upd_tvalid,
 

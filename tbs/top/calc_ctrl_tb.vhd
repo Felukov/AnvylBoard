@@ -26,6 +26,10 @@ architecture rtl of calc_ctrl_tb is
             key_btn2_s_tvalid           : in std_logic;
             key_btn3_s_tvalid           : in std_logic;
 
+            touch_s_tvalid              : in std_logic;
+            touch_s_tdata               : in std_logic_vector(11 downto 0);
+            touch_s_tuser               : in std_logic_vector(1 downto 0);
+
             tft_upd_s_tvalid            : in std_logic;
 
             sseg_m_tvalid               : out std_logic;
@@ -61,8 +65,12 @@ architecture rtl of calc_ctrl_tb is
     signal tft_m_tready                 : std_logic := '1';
     signal tft_m_tlast                  : std_logic;
     signal tft_m_tdata                  : std_logic_vector(55 downto 0);
-    signal tft_m_tuser                  : std_logic_vector(9 downto 0);
+    signal tft_m_tuser                  : std_logic_vector(6 downto 0);
     signal led_m_tdata                  : std_logic_vector(3 downto 0);
+
+    signal touch_s_tvalid               : std_logic := '0';
+    signal touch_s_tdata                : std_logic_vector(11 downto 0);
+    signal touch_s_tuser                : std_logic_vector(1 downto 0);
 
 
 begin
@@ -78,6 +86,10 @@ begin
         key_btn1_s_tvalid   => key_btn1_s_tvalid,
         key_btn2_s_tvalid   => key_btn2_s_tvalid,
         key_btn3_s_tvalid   => key_btn3_s_tvalid,
+
+        touch_s_tvalid      => touch_s_tvalid,
+        touch_s_tdata       => touch_s_tdata,
+        touch_s_tuser       => touch_s_tuser,
 
         tft_upd_s_tvalid    => tft_upd_s_tvalid,
 
