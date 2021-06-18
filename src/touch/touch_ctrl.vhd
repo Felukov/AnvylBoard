@@ -71,13 +71,12 @@ architecture rtl of touch_ctrl is
     signal rx_tvalid            : std_logic;
     signal rx_tdata             : std_logic_vector(11 downto 0);
     signal rx_cnt               : natural range 0 to SAMPLES_CNT-1;
-    signal rx_sample            : natural range 0 to 2;
 
     signal rx_sum               : natural range 0 to 2**17-1;
     signal rx_max               : natural range 0 to 2**12-1;
     signal rx_min               : natural range 0 to 2**12-1;
 
-    signal rx_raw_tvalid        : std_logic_vector (2 downto 0);
+    signal rx_raw_tvalid        : std_logic_vector (3 downto 0);
     signal rx_raw_tdata         : natural range 0 to 2**17-1;
     signal rx_raw_tuser         : natural range 0 to 2;
     signal rx_raw_max           : natural range 0 to 2**12-1;
@@ -85,7 +84,7 @@ architecture rtl of touch_ctrl is
 
 begin
 
-    touch_m_tvalid <= rx_raw_tvalid(2);
+    touch_m_tvalid <= rx_raw_tvalid(3);
     touch_m_tdata <= std_logic_vector(to_unsigned(rx_raw_tdata, 12));
     touch_m_tuser <= std_logic_vector(to_unsigned(rx_raw_tuser, 2));
 
@@ -148,10 +147,12 @@ begin
                 end if;
 
                 if (tx_tvalid = '1' and tx_tready = '1' and tx_cnt = SAMPLES_CNT-2) then
-                    if (tx_sample = SAMPLE_Z) then
+                    if (tx_sample = SAMPLE_X) then
+                        tx_sample <= SAMPLE_Y;
+                    elsif (tx_sample = SAMPLE_Y) then
+                        tx_sample <= SAMPLE_Z;
+                    elsif (tx_sample = SAMPLE_Z) then
                         tx_sample <= SAMPLE_X;
-                    else
-                        tx_sample <= tx_sample + 1;
                     end if;
                 end if;
 
@@ -171,8 +172,8 @@ begin
 
             if resetn = '0' then
                 rx_cnt <= 0;
-                rx_sample <= SAMPLE_X;
             else
+
                 if (rx_tvalid = '1') then
                     if (rx_cnt = SAMPLES_CNT-1)then
                         rx_cnt <= 0;
@@ -181,13 +182,6 @@ begin
                     end if;
                 end if;
 
-                if (rx_tvalid = '1' and rx_cnt = SAMPLES_CNT-1)then
-                    if (rx_sample = SAMPLE_Z) then
-                        rx_sample <= SAMPLE_X;
-                    else
-                        rx_sample <= rx_sample + 1;
-                    end if;
-                end if;
             end if;
 
             if (rx_tvalid = '1' and rx_cnt = 0) then
@@ -217,12 +211,13 @@ begin
         if rising_edge(clk) then
 
             if resetn = '0' then
-                rx_raw_tvalid <= "000";
+                rx_raw_tvalid <= "0000";
+                rx_raw_tuser <= SAMPLE_X;
             else
                 if (rx_tvalid = '1' and rx_cnt = SAMPLES_CNT-1) then
-                    rx_raw_tvalid <= rx_raw_tvalid(1 downto 0) & '1';
+                    rx_raw_tvalid <= rx_raw_tvalid(2 downto 0) & '1';
                 else
-                    rx_raw_tvalid <= rx_raw_tvalid(1 downto 0) & '0';
+                    rx_raw_tvalid <= rx_raw_tvalid(2 downto 0) & '0';
                 end if;
             end if;
 
@@ -231,18 +226,22 @@ begin
                 rx_raw_min <= rx_min;
             end if;
 
-            if (rx_tvalid = '1' and rx_cnt = SAMPLES_CNT-1) then
-                rx_raw_tdata <= rx_sum;
-            elsif (rx_raw_tvalid(0) = '1') then
-                rx_raw_tdata <= rx_raw_tdata - rx_raw_min;
+            if (rx_raw_tvalid(0) = '1') then
+                rx_raw_tdata <= rx_sum - rx_raw_min;
             elsif (rx_raw_tvalid(1) = '1') then
                 rx_raw_tdata <= rx_raw_tdata - rx_raw_max;
             elsif (rx_raw_tvalid(2) = '1') then
                 rx_raw_tdata <= rx_raw_tdata / 16;
             end if;
 
-            if (rx_tvalid = '1' and rx_cnt = SAMPLES_CNT-1) then
-                rx_raw_tuser <= rx_sample;
+            if (rx_raw_tvalid(3) = '1') then
+                if (rx_raw_tuser = SAMPLE_X) then
+                    rx_raw_tuser <= SAMPLE_Y;
+                elsif (rx_raw_tuser = SAMPLE_Y) then
+                    rx_raw_tuser <= SAMPLE_Z;
+                elsif (rx_raw_tuser = SAMPLE_Z) then
+                    rx_raw_tuser <= SAMPLE_X;
+                end if;
             end if;
 
         end if;

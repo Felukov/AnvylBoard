@@ -137,6 +137,12 @@ architecture rtl of calc_ctrl is
     signal active_num_hex_show_fl   : std_logic_vector(5 downto 0);
     signal buffer_num_hex           : num_hex_t;
 
+    signal sseg_hex                 : num_hex_t;
+
+    signal touch_x                  : std_logic_vector(11 downto 0);
+    signal touch_y                  : std_logic_vector(11 downto 0);
+    signal touch_z                  : std_logic_vector(11 downto 0);
+
     signal key_pad_tvalid           : std_logic;
     signal key_pad_tready           : std_logic;
     signal key_pad_tdata            : std_logic_vector(3 downto 0);
@@ -186,6 +192,7 @@ architecture rtl of calc_ctrl is
     signal event_keypad_completed   : std_logic;
     signal event_key0_completed     : std_logic;
     signal event_key3_completed     : std_logic;
+    signal event_touch_completed    : std_logic;
 
 begin
 
@@ -206,10 +213,18 @@ begin
 
     sseg_done_s_tvalid <= '1' when sseg_tvalid = '1' and sseg_loop_cnt = 5 else '0';
 
-    event_keypad_completed <= '1' when (event_type = EVENT_KEY_PAD or event_type = EVENT_KEY0) and sseg_done_m_tvalid = '1' and tft_upd_m_tvalid = '1' else '0';
-    event_key0_completed <= '1' when (event_type = EVENT_KEY0) and sseg_done_m_tvalid = '1' and tft_upd_m_tvalid = '1' else '0';
-    event_key3_completed <= '1' when (event_type = EVENT_KEY3) and sseg_done_m_tvalid = '1' and tft_upd_m_tvalid = '1' else '0';
-    event_completed <= '1' when event_keypad_completed = '1' or event_key0_completed = '1' or event_key3_completed = '1' else '0';
+    event_keypad_completed <= '1' when (event_type = EVENT_KEY_PAD) and tft_upd_m_tvalid = '1' else '0';
+    event_key0_completed <= '1' when (event_type = EVENT_KEY0) and tft_upd_m_tvalid = '1' else '0';
+    event_key3_completed <= '1' when (event_type = EVENT_KEY3) and tft_upd_m_tvalid = '1' else '0';
+    event_touch_completed <= '1' when (event_type = EVENT_TOUCH) and sseg_done_m_tvalid = '1' else '0';
+    event_completed <= '1' when event_keypad_completed = '1' or event_key0_completed = '1' or event_key3_completed = '1' or event_touch_completed = '1' else '0';
+
+    sseg_hex(5) <= touch_z(11 downto 8);
+    sseg_hex(4) <= touch_z( 7 downto 4);
+    sseg_hex(3) <= touch_y(11 downto 8);
+    sseg_hex(2) <= touch_y( 7 downto 4);
+    sseg_hex(1) <= touch_x(11 downto 8);
+    sseg_hex(0) <= touch_x( 7 downto 4);
 
     axis_reg_key_pad_inst : axis_reg generic map (
         DATA_WIDTH          => 4
@@ -377,7 +392,8 @@ begin
                 event_tready <= '1';
             else
                 if (event_tvalid = '1' and event_tready = '1') then
-                    if (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
+                    if (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0 or
+                        event_tuser = EVENT_KEY3 or event_tuser = EVENT_TOUCH) then
                         event_tready <= '0';
                     end if;
                 elsif (event_tready = '0' and event_completed = '1') then
@@ -419,6 +435,23 @@ begin
                 end if;
             end if;
 
+        end if;
+    end process;
+
+    touch_pos_process : process (clk) begin
+        if rising_edge(clk) then
+
+            if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_TOUCH and event_tdata(13 downto 12) = "00") then
+                touch_x <= event_tdata(11 downto 0);
+            end if;
+
+            if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_TOUCH and event_tdata(13 downto 12) = "01") then
+                touch_y <= event_tdata(11 downto 0);
+            end if;
+
+            if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_TOUCH and event_tdata(13 downto 12) = "10") then
+                touch_z <= event_tdata(11 downto 0);
+            end if;
         end if;
     end process;
 
@@ -489,7 +522,7 @@ begin
                 sseg_loop_cnt <= 0;
                 sseg_tvalid <= '0';
             else
-                if event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
+                if event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_TOUCH) then
                     sseg_loop_tvalid <= '1';
                 elsif (sseg_loop_tvalid = '1' and sseg_loop_cnt = 5) then
                     sseg_loop_tvalid <= '0';
@@ -507,12 +540,14 @@ begin
             end if;
 
             sseg_taddr <= std_logic_vector(to_unsigned(sseg_loop_cnt, 3));
-            sseg_tdata <= active_num_hex(sseg_loop_cnt);
-            if (active_num_hex_show_fl(sseg_loop_cnt) = '1') then
-                sseg_tuser <= SSEG_DIGIT;
-            else
-                sseg_tuser <= SSEG_NULL;
-            end if;
+            sseg_tdata <= sseg_hex(sseg_loop_cnt);
+            sseg_tuser <= SSEG_DIGIT;
+
+            -- if (active_num_hex_show_fl(sseg_loop_cnt) = '1') then
+            --     sseg_tuser <= SSEG_DIGIT;
+            -- else
+            --     sseg_tuser <= SSEG_NULL;
+            -- end if;
 
         end if;
     end process;

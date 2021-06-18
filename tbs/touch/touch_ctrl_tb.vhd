@@ -87,7 +87,7 @@ begin
 
     begin
         if (cnt = 0) then
-            dat <= rand_slv(12);
+            dat <= x"FFF"; --rand_slv(12);
         end if;
         if (cnt > 8 and cnt < 21) then
             SDI <= dat(11);

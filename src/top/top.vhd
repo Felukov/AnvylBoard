@@ -68,12 +68,12 @@ entity top is
         TFT_G_O                 : out std_logic_vector(7 downto 0);
         TFT_B_O                 : out std_logic_vector(7 downto 0);
 
-        TP_CS_O                 : out STD_LOGIC;
-        TP_DIN_O                : out STD_LOGIC;
-        TP_DOUT_I               : in STD_LOGIC;
-        TP_DCLK_O               : out STD_LOGIC;
-        TP_BUSY_I               : in STD_LOGIC;
-        TP_PENIRQ_I             : in STD_LOGIC;
+        TP_CS_O                 : out std_logic;
+        TP_DIN_O                : out std_logic;
+        TP_DOUT_I               : in std_logic;
+        TP_DCLK_O               : out std_logic;
+        TP_BUSY_I               : in std_logic;
+        TP_PENIRQ_I             : in std_logic;
 
         RS232_UART_TX           : out std_logic;
         RS232_UART_RX           : in std_logic
@@ -790,7 +790,8 @@ begin
 
     read_rom: process (mem_clk) begin
         if (rising_edge(mem_clk)) then
-            LED(3 downto 2) <= "00";
+            LED(3) <= '0';
+            LED(2) <= TP_PENIRQ_I;
             LED(1) <= toggler_fl;
         end if;
     end process;
