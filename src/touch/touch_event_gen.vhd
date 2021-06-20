@@ -83,14 +83,14 @@ architecture rtl of touch_event_gen is
 
     component timer is
         port (
-            clk_100                     : in std_logic;
+            clk_100             : in std_logic;
 
-            cmd_s_tvalid                : in std_logic;
-            cmd_s_tdata                 : in std_logic_vector(15 downto 0);
-            cmd_s_tuser                 : in std_logic;
+            cmd_s_tvalid        : in std_logic;
+            cmd_s_tdata         : in std_logic_vector(15 downto 0);
+            cmd_s_tuser         : in std_logic;
 
-            pulse1ms_m_tvalid           : out std_logic;
-            pulse_m_tvalid              : out std_logic
+            pulse1ms_m_tvalid   : out std_logic;
+            pulse_m_tvalid      : out std_logic
         );
     end component;
 
