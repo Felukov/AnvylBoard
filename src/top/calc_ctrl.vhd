@@ -19,8 +19,7 @@ entity calc_ctrl is
         key_btn3_s_tvalid   : in std_logic;
 
         touch_s_tvalid      : in std_logic;
-        touch_s_tdata       : in std_logic_vector(11 downto 0);
-        touch_s_tuser       : in std_logic_vector(1 downto 0);
+        touch_s_tdata       : in std_logic_vector(7 downto 0);
 
         tft_upd_s_tvalid    : in std_logic;
 
@@ -128,7 +127,7 @@ architecture rtl of calc_ctrl is
     signal event_tvalid             : std_logic;
     signal event_tready             : std_logic;
     signal event_tlast              : std_logic;
-    signal event_tdata              : std_logic_vector(15 downto 0);
+    signal event_tdata              : std_logic_vector(7 downto 0);
     signal event_tuser              : std_logic_vector(3 downto 0);
 
     signal num_pos                  : natural range 0 to 5;
@@ -138,10 +137,6 @@ architecture rtl of calc_ctrl is
     signal buffer_num_hex           : num_hex_t;
 
     signal sseg_hex                 : num_hex_t;
-
-    signal touch_x                  : std_logic_vector(11 downto 0);
-    signal touch_y                  : std_logic_vector(11 downto 0);
-    signal touch_z                  : std_logic_vector(11 downto 0);
 
     signal key_pad_tvalid           : std_logic;
     signal key_pad_tready           : std_logic;
@@ -156,16 +151,15 @@ architecture rtl of calc_ctrl is
     signal key_btn3_tvalid          : std_logic;
     signal key_btn3_tready          : std_logic;
 
-    signal touch_s_tpayload         : std_logic_vector(13 downto 0);
     signal touch_tvalid             : std_logic;
     signal touch_tready             : std_logic;
-    signal touch_tpayload           : std_logic_vector(13 downto 0);
-    signal touch_tdata              : std_logic_vector(11 downto 0);
-    signal touch_tuser              : std_logic_vector(1 downto 0);
+    signal touch_tdata              : std_logic_vector(7 downto 0);
+
+    signal touch_glyph              : std_logic_vector(7 downto 0);
 
     signal inter_tvalid             : std_logic_vector(CH_QTY-1 downto 0);
     signal inter_tready             : std_logic_vector(CH_QTY-1 downto 0);
-    signal inter_tdata              : std_logic_vector(16*CH_QTY-1 downto 0);
+    signal inter_tdata              : std_logic_vector(8*CH_QTY-1 downto 0);
     signal inter_tuser              : std_logic_vector(4*CH_QTY-1 downto 0);
 
     signal sseg_loop_tvalid         : std_logic;
@@ -196,8 +190,6 @@ architecture rtl of calc_ctrl is
 
 begin
 
-    touch_s_tpayload <= touch_s_tuser & touch_s_tdata;
-
     sseg_m_tvalid <= sseg_tvalid;
     sseg_m_taddr <= sseg_taddr;
     sseg_m_tdata <= sseg_tdata;
@@ -219,12 +211,12 @@ begin
     event_touch_completed <= '1' when (event_type = EVENT_TOUCH) and sseg_done_m_tvalid = '1' else '0';
     event_completed <= '1' when event_keypad_completed = '1' or event_key0_completed = '1' or event_key3_completed = '1' or event_touch_completed = '1' else '0';
 
-    sseg_hex(5) <= touch_z(11 downto 8);
-    sseg_hex(4) <= touch_z( 7 downto 4);
-    sseg_hex(3) <= touch_y(11 downto 8);
-    sseg_hex(2) <= touch_y( 7 downto 4);
-    sseg_hex(1) <= touch_x(11 downto 8);
-    sseg_hex(0) <= touch_x( 7 downto 4);
+    sseg_hex(5) <= x"0";
+    sseg_hex(4) <= x"0";
+    sseg_hex(3) <= x"0";
+    sseg_hex(2) <= x"0";
+    sseg_hex(1) <= touch_glyph( 7 downto 4);
+    sseg_hex(0) <= touch_glyph( 3 downto 0);
 
     axis_reg_key_pad_inst : axis_reg generic map (
         DATA_WIDTH          => 4
@@ -302,18 +294,18 @@ begin
     );
 
     axis_reg_touch_inst : axis_reg generic map (
-        DATA_WIDTH          => 14
+        DATA_WIDTH          => 8
     ) port map (
         clk                 => clk,
         resetn              => resetn,
 
         in_s_tvalid         => touch_s_tvalid,
         in_s_tready         => open,
-        in_s_tdata          => touch_s_tpayload,
+        in_s_tdata          => touch_s_tdata,
 
         out_m_tvalid        => touch_tvalid,
         out_m_tready        => touch_tready,
-        out_m_tdata         => touch_tpayload
+        out_m_tdata         => touch_tdata
     );
 
     sseg_done_reg : axis_reg generic map (
@@ -354,18 +346,18 @@ begin
     key_btn1_tready <= inter_tready(1);
     key_btn0_tready <= inter_tready(0);
     inter_tdata <=
-        "00" & touch_tpayload &
-        x"000" & key_pad_tdata &
-        x"0000" &
-        x"0000" &
-        x"0000" &
-        x"0000";
+        touch_tdata &
+        x"0" & key_pad_tdata &
+        x"00" &
+        x"00" &
+        x"00" &
+        x"00";
     inter_tuser <= x"5" & x"4" & x"3" & x"2" & x"1" & x"0";
 
 
     axis_interconnect_inst : axis_interconnect generic map (
         CH_QTY              => CH_QTY,
-        DATA_WIDTH          => 16,
+        DATA_WIDTH          => 8,
         USER_WIDTH          => 4
     ) port map (
         clk                 => clk,
@@ -419,8 +411,8 @@ begin
                     case event_tuser is
                         when EVENT_KEY_PAD =>
                             led_m_tdata <= event_tdata(3 downto 0);
-                        when EVENT_TOUCH =>
-                            led_m_tdata <= event_tdata(11 downto 8);
+                        when EVENT_TOUCH  =>
+                            led_m_tdata <= "0101";
                         when EVENT_KEY0  =>
                             led_m_tdata <= "0001";
                         when EVENT_KEY1  =>
@@ -441,17 +433,10 @@ begin
     touch_pos_process : process (clk) begin
         if rising_edge(clk) then
 
-            if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_TOUCH and event_tdata(13 downto 12) = "00") then
-                touch_x <= event_tdata(11 downto 0);
+            if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_TOUCH) then
+                touch_glyph <= event_tdata(7 downto 0);
             end if;
 
-            if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_TOUCH and event_tdata(13 downto 12) = "01") then
-                touch_y <= event_tdata(11 downto 0);
-            end if;
-
-            if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_TOUCH and event_tdata(13 downto 12) = "10") then
-                touch_z <= event_tdata(11 downto 0);
-            end if;
         end if;
     end process;
 
@@ -543,11 +528,11 @@ begin
             sseg_tdata <= sseg_hex(sseg_loop_cnt);
             sseg_tuser <= SSEG_DIGIT;
 
-            -- if (active_num_hex_show_fl(sseg_loop_cnt) = '1') then
-            --     sseg_tuser <= SSEG_DIGIT;
-            -- else
-            --     sseg_tuser <= SSEG_NULL;
-            -- end if;
+            if (sseg_loop_cnt < 2) then
+                sseg_tuser <= SSEG_DIGIT;
+            else
+                sseg_tuser <= SSEG_NULL;
+            end if;
 
         end if;
     end process;

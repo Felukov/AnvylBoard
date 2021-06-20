@@ -327,8 +327,7 @@ architecture Behavioral of top is
             key_btn3_s_tvalid           : in std_logic;
 
             touch_s_tvalid              : in std_logic;
-            touch_s_tdata               : in std_logic_vector(11 downto 0);
-            touch_s_tuser               : in std_logic_vector(1 downto 0);
+            touch_s_tdata               : in std_logic_vector(7 downto 0);
 
             tft_upd_s_tvalid            : in std_logic;
 
@@ -364,6 +363,20 @@ architecture Behavioral of top is
             SDO                         : out std_logic
         );
     end component;
+
+    component touch_event_gen is
+        port (
+            clk                         : in std_logic;
+            resetn                      : in std_logic;
+
+            touch_s_tvalid              : in std_logic;
+            touch_s_tdata               : in std_logic_vector(11 downto 0);
+            touch_s_tuser               : in std_logic_vector(1 downto 0);
+
+            event_m_tvalid              : out std_logic;
+            event_m_tdata               : out std_logic_vector(7 downto 0)
+        );
+    end component touch_event_gen;
 
     --Local signals
     signal sys_clk_ibufg                : std_logic;
@@ -449,6 +462,9 @@ architecture Behavioral of top is
     signal touch_tvalid                 : std_logic;
     signal touch_tdata                  : std_logic_vector(11 downto 0);
     signal touch_tuser                  : std_logic_vector(1 downto 0);
+
+    signal touch_event_tvalid           : std_logic;
+    signal touch_event_tdata            : std_logic_vector(7 downto 0);
 
 begin
 
@@ -727,6 +743,18 @@ begin
         SDO                 => TP_DIN_O
     );
 
+    touch_event_gen_inst : touch_event_gen port map (
+        clk                 => mem_clk,
+        resetn              => mem_calib_done,
+
+        touch_s_tvalid      => touch_tvalid,
+        touch_s_tdata       => touch_tdata,
+        touch_s_tuser       => touch_tuser,
+
+        event_m_tvalid      => touch_event_tvalid,
+        event_m_tdata       => touch_event_tdata
+    );
+
     calc_ctrl_inst: calc_ctrl port map (
         clk                 => mem_clk,
         resetn              => mem_calib_done,
@@ -739,9 +767,8 @@ begin
         key_btn2_s_tvalid   => btn_2_push_up_tvalid,
         key_btn3_s_tvalid   => btn_3_push_up_tvalid,
 
-        touch_s_tvalid      => touch_tvalid,
-        touch_s_tdata       => touch_tdata,
-        touch_s_tuser       => touch_tuser,
+        touch_s_tvalid      => touch_event_tvalid,
+        touch_s_tdata       => touch_event_tdata,
 
         tft_upd_s_tvalid    => tft_upd_tvalid,
 
