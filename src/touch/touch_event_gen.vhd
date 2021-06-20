@@ -81,6 +81,19 @@ architecture rtl of touch_event_gen is
         );
     end component;
 
+    component timer is
+        port (
+            clk_100                     : in std_logic;
+
+            cmd_s_tvalid                : in std_logic;
+            cmd_s_tdata                 : in std_logic_vector(15 downto 0);
+            cmd_s_tuser                 : in std_logic;
+
+            pulse1ms_m_tvalid           : out std_logic;
+            pulse_m_tvalid              : out std_logic
+        );
+    end component;
+
     signal div_tvalid           : std_logic;
     signal div_tdata            : std_logic_vector(23 downto 0);
     signal div_tuser            : std_logic_vector(1 downto 0);
@@ -99,6 +112,11 @@ architecture rtl of touch_event_gen is
     signal event_tvalid         : std_logic;
     signal event_cnt            : natural range 0 to 15;
     signal event_glyph          : natural range 0 to 29;
+
+    signal timer_cmd_tvalid     : std_logic;
+    signal pulse_tvalid         : std_logic;
+
+    signal event_mask           : std_logic;
 
 begin
 
@@ -119,6 +137,17 @@ begin
         div_m_tready    => '1',
         div_m_tdata     => div_res_tdata,
         div_m_tuser     => div_res_tuser
+    );
+
+    guard_timer_inst : timer port map (
+        clk_100             => clk,
+
+        cmd_s_tvalid        => timer_cmd_tvalid,
+        cmd_s_tdata         => x"00fa", --0.25 sec
+        cmd_s_tuser         => '1',
+
+        pulse1ms_m_tvalid   => open,
+        pulse_m_tvalid      => pulse_tvalid
     );
 
     process (clk) begin
@@ -232,6 +261,7 @@ begin
             if resetn = '0' then
                 event_m_tvalid <= '0';
                 event_cnt <= 0;
+                event_mask <= '0';
             else
 
                 if (event_tvalid = '1') then
@@ -242,10 +272,18 @@ begin
                     end if;
                 end if;
 
-                if (event_tvalid = '1' and event_cnt = 15) then
+                if (event_tvalid = '1' and event_cnt = 15 and event_mask = '0') then
                     event_m_tvalid <= '1';
+                    timer_cmd_tvalid <= '1';
                 else
                     event_m_tvalid <= '0';
+                    timer_cmd_tvalid <= '0';
+                end if;
+
+                if (event_tvalid = '1' and event_cnt = 15) then
+                    event_mask <= '1';
+                elsif(pulse_tvalid = '1') then
+                    event_mask <= '0';
                 end if;
 
             end if;

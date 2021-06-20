@@ -208,7 +208,7 @@ begin
     event_keypad_completed <= '1' when (event_type = EVENT_KEY_PAD) and tft_upd_m_tvalid = '1' else '0';
     event_key0_completed <= '1' when (event_type = EVENT_KEY0) and tft_upd_m_tvalid = '1' else '0';
     event_key3_completed <= '1' when (event_type = EVENT_KEY3) and tft_upd_m_tvalid = '1' else '0';
-    event_touch_completed <= '1' when (event_type = EVENT_TOUCH) and sseg_done_m_tvalid = '1' else '0';
+    event_touch_completed <= '1' when (event_type = EVENT_TOUCH) and sseg_done_m_tvalid = '1' and tft_upd_m_tvalid = '1' else '0';
     event_completed <= '1' when event_keypad_completed = '1' or event_key0_completed = '1' or event_key3_completed = '1' or event_touch_completed = '1' else '0';
 
     sseg_hex(5) <= x"0";
@@ -430,6 +430,7 @@ begin
         end if;
     end process;
 
+
     touch_pos_process : process (clk) begin
         if rising_edge(clk) then
 
@@ -455,42 +456,49 @@ begin
                 active_num_hex_show_fl <= "000001";
                 num_pos <= 0;
             else
-                if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY_PAD) then
-                    if (num_pos /= 5 and not (num_pos = 0 and event_tdata(3 downto 0) = x"0")) then
-                        num_pos <= num_pos + 1;
+                if (event_tvalid = '1' and event_tready = '1') then
+
+                    if (event_tuser = EVENT_KEY_PAD or (event_tuser = EVENT_TOUCH and event_tdata(7 downto 4) = x"0")) then
+                        if (num_pos /= 5 and not (num_pos = 0 and event_tdata(3 downto 0) = x"0")) then
+                            num_pos <= num_pos + 1;
+                        end if;
+                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
+                        num_pos <= 0;
                     end if;
-                elsif (event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3)) then
-                    num_pos <= 0;
-                end if;
 
-                if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY_PAD and num_pos = 5) then
-                    active_num_full_fl <= '1';
-                elsif (event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3)) then
-                    active_num_full_fl <= '0';
-                end if;
-
-                if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY_PAD and active_num_full_fl = '0') then
-                    active_num_hex(5) <= active_num_hex(4);
-                    active_num_hex(4) <= active_num_hex(3);
-                    active_num_hex(3) <= active_num_hex(2);
-                    active_num_hex(2) <= active_num_hex(1);
-                    active_num_hex(1) <= active_num_hex(0);
-                    active_num_hex(0) <= event_tdata(3 downto 0);
-                    if (num_pos > 0) then
-                        active_num_hex_show_fl <= active_num_hex_show_fl(4 downto 0) & "1";
+                    if (event_tuser = EVENT_KEY_PAD or (event_tuser = EVENT_TOUCH and event_tdata(7 downto 4) = x"0")) then
+                        if (num_pos = 5) then
+                            active_num_full_fl <= '1';
+                        end if;
+                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
+                        active_num_full_fl <= '0';
                     end if;
-                elsif (event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3)) then
-                    active_num_hex(0) <= x"0";
-                    active_num_hex(1) <= x"0";
-                    active_num_hex(2) <= x"0";
-                    active_num_hex(3) <= x"0";
-                    active_num_hex(4) <= x"0";
-                    active_num_hex(5) <= x"0";
-                    active_num_hex_show_fl <= "000001";
-                end if;
 
-                if (event_tvalid = '1' and event_tready = '1' and event_tuser = EVENT_KEY3) then
-                    buffer_num_hex <= active_num_hex;
+                    if (event_tuser = EVENT_KEY_PAD or (event_tuser = EVENT_TOUCH and event_tdata(7 downto 4) = x"0")) then
+                        if (active_num_full_fl = '0') then
+                            active_num_hex(5) <= active_num_hex(4);
+                            active_num_hex(4) <= active_num_hex(3);
+                            active_num_hex(3) <= active_num_hex(2);
+                            active_num_hex(2) <= active_num_hex(1);
+                            active_num_hex(1) <= active_num_hex(0);
+                            active_num_hex(0) <= event_tdata(3 downto 0);
+                            if (num_pos > 0) then
+                                active_num_hex_show_fl <= active_num_hex_show_fl(4 downto 0) & "1";
+                            end if;
+                        end if;
+                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
+                        active_num_hex(0) <= x"0";
+                        active_num_hex(1) <= x"0";
+                        active_num_hex(2) <= x"0";
+                        active_num_hex(3) <= x"0";
+                        active_num_hex(4) <= x"0";
+                        active_num_hex(5) <= x"0";
+                        active_num_hex_show_fl <= "000001";
+                    end if;
+
+                    if (event_tuser = EVENT_KEY3) then
+                        buffer_num_hex <= active_num_hex;
+                    end if;
                 end if;
 
             end if;
@@ -537,6 +545,7 @@ begin
         end if;
     end process;
 
+
     update_tft_process : process (clk) begin
         if rising_edge(clk) then
 
@@ -548,7 +557,7 @@ begin
                 tft_tlast <= '0';
             else
 
-                if event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
+                if event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3 or event_tuser = EVENT_TOUCH) then
                     tft_loop_tvalid <= '1';
                 elsif (tft_loop_tvalid = '1' and tft_loop_tready = '1' and tft_loop_cnt = 11) then
                     tft_loop_tvalid <= '0';
