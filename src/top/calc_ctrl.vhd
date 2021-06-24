@@ -147,6 +147,7 @@ architecture rtl of calc_ctrl is
     signal num_pos                  : natural range 0 to 11;
     signal active_num_hex           : num_hex_t;
     signal active_num_hex_show_fl   : std_logic_vector(11 downto 0);
+    signal active_num_hex_sign      : std_logic;
     signal buffer_num_hex           : num_hex_t;
 
     signal sseg_hex                 : sseg_hex_t;
@@ -468,6 +469,8 @@ begin
                 end loop;
                 active_num_hex_show_fl(0) <= '1';
 
+                active_num_hex_sign <= '0';
+
                 num_pos <= 0;
             else
                 if (event_tvalid = '1' and event_tready = '1') then
@@ -485,6 +488,7 @@ begin
                     end if;
 
                     if (event_tuser = EVENT_KEY_PAD or (event_tuser = EVENT_TOUCH and event_tdata(7 downto 4) = x"0")) then
+
                         if (num_pos /= 11) then
                             for i in 1 to 11 loop
                                 active_num_hex(i) <= active_num_hex(i-1);
@@ -495,7 +499,11 @@ begin
                                 active_num_hex_show_fl <= active_num_hex_show_fl(10 downto 0) & "1";
                             end if;
                         end if;
+                    elsif (event_tuser = EVENT_TOUCH and event_tdata = GL_NEG) then
+                        active_num_hex_sign <= not active_num_hex_sign;
+
                     elsif (event_tuser = EVENT_TOUCH and event_tdata = GL_BACK) then
+
                         active_num_hex(11) <= x"0";
                         for i in 0 to 10 loop
                             active_num_hex(i) <= active_num_hex(i+1);
@@ -511,6 +519,7 @@ begin
                         end if;
 
                     elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
+
                         for i in 0 to 11 loop
                             active_num_hex(i) <= x"0";
                         end loop;
@@ -623,11 +632,20 @@ begin
                 tft_tdata.fg(G) <= x"FF";
                 tft_tdata.fg(B) <= x"FF";
 
-                if (active_num_hex_show_fl(tft_loop_cnt) = '1') then
-                    tft_tdata.glyph <= '0' & active_num_hex(tft_loop_cnt);
+                if (tft_loop_cnt = 11) then
+                    if (active_num_hex_sign = '1') then
+                        tft_tdata.glyph <= GL_SUB;
+                    else
+                        tft_tdata.glyph <= GL_NULL;
+                    end if;
                 else
-                    tft_tdata.glyph <= GL_NULL;
+                    if (active_num_hex_show_fl(tft_loop_cnt) = '1') then
+                        tft_tdata.glyph <= '0' & active_num_hex(tft_loop_cnt);
+                    else
+                        tft_tdata.glyph <= GL_NULL;
+                    end if;
                 end if;
+
 
                 tft_tuser <= std_logic_vector(to_unsigned(NUM_START_POS - tft_loop_cnt, 7));
             end if;
