@@ -22,7 +22,8 @@ entity calc_alu is
         alu_m_tready            : in std_logic;
         alu_m_tdata             : out std_logic_vector(11*4-1 downto 0);
         alu_m_tdata_sign        : out std_logic;
-        alu_m_tuser_cb          : out std_logic
+        alu_m_tuser_cb          : out std_logic;
+        alu_m_tuser_msn         : out std_logic_vector(3 downto 0)          -- most significant nibble
 
     );
 end entity calc_alu;
@@ -51,8 +52,9 @@ architecture rtl of calc_alu is
             alu_m_tvalid        : out std_logic;
             alu_m_tready        : in std_logic;
             alu_m_tdata         : out std_logic_vector(11*4-1 downto 0);
-            alu_m_tuser_cb      : out std_logic;
-            alu_m_tuser_zf      : out std_logic
+            alu_m_tuser_cb      : out std_logic;                            -- carry bit
+            alu_m_tuser_zf      : out std_logic;                            -- zero flag
+            alu_m_tuser_msn     : out std_logic_vector(3 downto 0)          -- most significant nibble
         );
     end component;
 
@@ -66,6 +68,7 @@ architecture rtl of calc_alu is
     signal alu_res_tdata        : std_logic_vector(11*4-1 downto 0);
     signal alu_res_tdata_sign   : std_logic;
     signal alu_res_tdata_cb     : std_logic;
+    signal alu_res_tdata_msn    : std_logic_vector(3 downto 0);
     signal base_alu_s_tvalid    : std_logic;
     signal base_alu_s_tready    : std_logic;
     signal base_alu_s_tdata_a   : std_logic_vector(11*4-1 downto 0);
@@ -77,6 +80,7 @@ architecture rtl of calc_alu is
     signal base_alu_m_tdata     : std_logic_vector(11*4-1 downto 0);
     signal base_alu_m_tuser_cb  : std_logic;
     signal base_alu_m_tuser_zf  : std_logic;
+    signal base_alu_m_tuser_msn : std_logic_vector(3 downto 0);
 
     signal buf_tdata_op         : std_logic_vector(2 downto 0);
     signal buf_tdata_b          : std_logic_vector(11*4-1 downto 0);
@@ -95,6 +99,7 @@ begin
     alu_m_tdata <= alu_res_tdata;
     alu_m_tdata_sign <= alu_res_tdata_sign;
     alu_m_tuser_cb <= alu_res_tdata_cb;
+    alu_m_tuser_msn <= alu_res_tdata_msn;
 
     base_alu_m_tready <= '1';
 
@@ -112,7 +117,8 @@ begin
         alu_m_tready    => base_alu_m_tready,
         alu_m_tdata     => base_alu_m_tdata,
         alu_m_tuser_cb  => base_alu_m_tuser_cb,
-        alu_m_tuser_zf  => base_alu_m_tuser_zf
+        alu_m_tuser_zf  => base_alu_m_tuser_zf,
+        alu_m_tuser_msn => base_alu_m_tuser_msn
     );
 
 
@@ -304,6 +310,7 @@ begin
                 else
                     alu_res_tdata_sign <= '0';
                 end if;
+                alu_res_tdata_msn <= base_alu_m_tuser_msn;
                 alu_res_tdata_cb <= base_alu_m_tuser_cb;
             end if;
 

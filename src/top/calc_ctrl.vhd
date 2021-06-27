@@ -69,6 +69,13 @@ architecture rtl of calc_ctrl is
     constant GL_BACK        : std_logic_vector(4 downto 0) := std_logic_vector(to_unsigned(28, 5));
     constant GL_NULL        : std_logic_vector(4 downto 0) := std_logic_vector(to_unsigned(29, 5));
 
+    constant ALU_ADD        : std_logic_vector(2 downto 0) := "000";
+    constant ALU_SUB        : std_logic_vector(2 downto 0) := "001";
+    constant ALU_AND        : std_logic_vector(2 downto 0) := "010";
+    constant ALU_OR         : std_logic_vector(2 downto 0) := "011";
+    constant ALU_XOR        : std_logic_vector(2 downto 0) := "100";
+    constant ALU_INV        : std_logic_vector(2 downto 0) := "101";
+
     constant NUM_START_POS  : natural := 12*2-1;
 
     -- Types
@@ -86,41 +93,64 @@ architecture rtl of calc_ctrl is
 
     component axis_reg is
         generic (
-            DATA_WIDTH      : natural := 32
+            DATA_WIDTH          : natural := 32
         );
         port (
-            clk             : in std_logic;
-            resetn          : in std_logic;
-            in_s_tvalid     : in std_logic;
-            in_s_tready     : out std_logic;
-            in_s_tdata      : in std_logic_vector (DATA_WIDTH-1 downto 0);
-            out_m_tvalid    : out std_logic;
-            out_m_tready    : in std_logic;
-            out_m_tdata     : out std_logic_vector (DATA_WIDTH-1 downto 0)
+            clk                 : in std_logic;
+            resetn              : in std_logic;
+            in_s_tvalid         : in std_logic;
+            in_s_tready         : out std_logic;
+            in_s_tdata          : in std_logic_vector (DATA_WIDTH-1 downto 0);
+            out_m_tvalid        : out std_logic;
+            out_m_tready        : in std_logic;
+            out_m_tdata         : out std_logic_vector (DATA_WIDTH-1 downto 0)
         );
     end component;
 
     component axis_interconnect is
         generic (
-            CH_QTY          : integer := 4;
-            DATA_WIDTH      : integer := 32;
-            USER_WIDTH      : integer := 32
+            CH_QTY              : integer := 4;
+            DATA_WIDTH          : integer := 32;
+            USER_WIDTH          : integer := 32
         );
         port (
-            clk             : in std_logic;
-            resetn          : in std_logic;
+            clk                 : in std_logic;
+            resetn              : in std_logic;
 
-            ch_in_s_tvalid  : in std_logic_vector(CH_QTY-1 downto 0);
-            ch_in_s_tready  : out std_logic_vector(CH_QTY-1 downto 0);
-            ch_in_s_tlast   : in std_logic_vector(CH_QTY-1 downto 0);
-            ch_in_s_tdata   : in std_logic_vector(CH_QTY*DATA_WIDTH-1 downto 0);
-            ch_in_s_tuser   : in std_logic_vector(CH_QTY*USER_WIDTH-1 downto 0);
+            ch_in_s_tvalid      : in std_logic_vector(CH_QTY-1 downto 0);
+            ch_in_s_tready      : out std_logic_vector(CH_QTY-1 downto 0);
+            ch_in_s_tlast       : in std_logic_vector(CH_QTY-1 downto 0);
+            ch_in_s_tdata       : in std_logic_vector(CH_QTY*DATA_WIDTH-1 downto 0);
+            ch_in_s_tuser       : in std_logic_vector(CH_QTY*USER_WIDTH-1 downto 0);
 
-            ch_out_m_tvalid : out std_logic;
-            ch_out_m_tready : in std_logic;
-            ch_out_m_tlast  : out std_logic;
-            ch_out_m_tdata  : out std_logic_vector(DATA_WIDTH-1 downto 0);
-            ch_out_m_tuser  : out std_logic_vector(USER_WIDTH-1 downto 0)
+            ch_out_m_tvalid     : out std_logic;
+            ch_out_m_tready     : in std_logic;
+            ch_out_m_tlast      : out std_logic;
+            ch_out_m_tdata      : out std_logic_vector(DATA_WIDTH-1 downto 0);
+            ch_out_m_tuser      : out std_logic_vector(USER_WIDTH-1 downto 0)
+        );
+    end component;
+
+    component calc_alu is
+        port (
+            clk                 : in std_logic;
+            resetn              : in std_logic;
+
+            alu_s_tvalid        : in std_logic;
+            alu_s_tready        : out std_logic;
+            alu_s_tdata_a       : in std_logic_vector(11*4-1 downto 0);
+            alu_s_tdata_a_sign  : in std_logic;
+            alu_s_tdata_b       : in std_logic_vector(11*4-1 downto 0);
+            alu_s_tdata_b_sign  : in std_logic;
+            alu_s_tdata_op      : in std_logic_vector(2 downto 0);
+
+            alu_m_tvalid        : out std_logic;
+            alu_m_tready        : in std_logic;
+            alu_m_tdata         : out std_logic_vector(11*4-1 downto 0);
+            alu_m_tdata_sign    : out std_logic;
+            alu_m_tuser_cb      : out std_logic;
+            alu_m_tuser_msn     : out std_logic_vector(3 downto 0)
+
         );
     end component;
 
@@ -138,6 +168,24 @@ architecture rtl of calc_ctrl is
         return vec;
     end function;
 
+    function slv_to_num_hex(val : std_logic_vector(11*4-1 downto 0)) return num_hex_t is
+        variable num : num_hex_t;
+    begin
+        for i in 0 to 10 loop
+            num(i) := val((i+1)*4-1 downto i*4);
+        end loop;
+        return num;
+    end function;
+
+    function num_hex_to_slv(num : num_hex_t) return std_logic_vector is
+        variable vec : std_logic_vector(11*4-1 downto 0);
+    begin
+        for i in 0 to 10 loop
+            vec((i+1)*4-1 downto i*4) := num(i);
+        end loop;
+        return vec;
+    end function;
+
     signal event_tvalid             : std_logic;
     signal event_tready             : std_logic;
     signal event_tlast              : std_logic;
@@ -149,6 +197,23 @@ architecture rtl of calc_ctrl is
     signal active_num_hex_show_fl   : std_logic_vector(10 downto 0);
     signal active_num_hex_sign      : std_logic;
     signal buffer_num_hex           : num_hex_t;
+    signal buffer_num_hex_sign      : std_logic;
+    signal buffer_op                : std_logic_vector(2 downto 0);
+
+    signal alu_s_tvalid             : std_logic;
+    signal alu_s_tready             : std_logic;
+    signal alu_s_tdata_a            : std_logic_vector(11*4-1 downto 0);
+    signal alu_s_tdata_a_sign       : std_logic;
+    signal alu_s_tdata_b            : std_logic_vector(11*4-1 downto 0);
+    signal alu_s_tdata_b_sign       : std_logic;
+    signal alu_s_tdata_op           : std_logic_vector(2 downto 0);
+    signal alu_m_tvalid             : std_logic;
+    signal alu_m_tready             : std_logic;
+    signal alu_m_tdata              : std_logic_vector(11*4-1 downto 0);
+    signal alu_m_tdata_hex          : num_hex_t;
+    signal alu_m_tdata_sign         : std_logic;
+    signal alu_m_tuser_cb           : std_logic;
+    signal alu_m_tuser_msn          : std_logic_vector(3 downto 0);
 
     signal sseg_hex                 : sseg_hex_t;
 
@@ -232,6 +297,10 @@ begin
     sseg_hex(1) <= touch_glyph( 7 downto 4);
     sseg_hex(0) <= touch_glyph( 3 downto 0);
 
+    alu_m_tready <= '1';
+    alu_m_tdata_hex <= slv_to_num_hex(alu_m_tdata);
+
+
     axis_reg_key_pad_inst : axis_reg generic map (
         DATA_WIDTH          => 4
     ) port map (
@@ -246,6 +315,7 @@ begin
         out_m_tready        => key_pad_tready,
         out_m_tdata         => key_pad_tdata
     );
+
 
     axis_reg_key_btn0_inst : axis_reg generic map (
         DATA_WIDTH          => 4
@@ -262,6 +332,7 @@ begin
         out_m_tdata         => open
     );
 
+
     axis_reg_key_btn1_inst : axis_reg generic map (
         DATA_WIDTH          => 4
     ) port map (
@@ -276,6 +347,7 @@ begin
         out_m_tready        => key_btn1_tready,
         out_m_tdata         => open
     );
+
 
     axis_reg_key_btn2_inst : axis_reg generic map (
         DATA_WIDTH          => 4
@@ -292,6 +364,7 @@ begin
         out_m_tdata         => open
     );
 
+
     axis_reg_key_btn3_inst : axis_reg generic map (
         DATA_WIDTH          => 4
     ) port map (
@@ -306,6 +379,7 @@ begin
         out_m_tready        => key_btn3_tready,
         out_m_tdata         => open
     );
+
 
     axis_reg_touch_inst : axis_reg generic map (
         DATA_WIDTH          => 8
@@ -322,6 +396,7 @@ begin
         out_m_tdata         => touch_tdata
     );
 
+
     sseg_done_reg : axis_reg generic map (
         DATA_WIDTH          => 4
     ) port map (
@@ -337,6 +412,7 @@ begin
         out_m_tdata         => open
     );
 
+
     tft_upd_done_reg : axis_reg generic map (
         DATA_WIDTH          => 4
     ) port map (
@@ -351,6 +427,28 @@ begin
         out_m_tready        => event_completed,
         out_m_tdata         => open
     );
+
+
+    calc_alu_inst: calc_alu port map (
+        clk                 => clk,
+        resetn              => resetn,
+
+        alu_s_tvalid        => alu_s_tvalid,
+        alu_s_tready        => alu_s_tready,
+        alu_s_tdata_a       => alu_s_tdata_a,
+        alu_s_tdata_a_sign  => alu_s_tdata_a_sign,
+        alu_s_tdata_b       => alu_s_tdata_b,
+        alu_s_tdata_b_sign  => alu_s_tdata_b_sign,
+        alu_s_tdata_op      => alu_s_tdata_op,
+
+        alu_m_tvalid        => alu_m_tvalid,
+        alu_m_tready        => alu_m_tready,
+        alu_m_tdata         => alu_m_tdata,
+        alu_m_tdata_sign    => alu_m_tdata_sign,
+        alu_m_tuser_cb      => alu_m_tuser_cb,
+        alu_m_tuser_msn     => alu_m_tuser_msn
+    );
+
 
     inter_tvalid <= touch_tvalid & key_pad_tvalid & key_btn3_tvalid & key_btn2_tvalid & key_btn1_tvalid & key_btn0_tvalid;
     touch_tready <= inter_tready(5);
@@ -485,7 +583,7 @@ begin
                         if (num_pos > 0) then
                             num_pos <= num_pos - 1;
                         end if;
-                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
+                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and event_tdata = GL_ADD)) then
                         num_pos <= 0;
                     end if;
 
@@ -521,7 +619,7 @@ begin
                             active_num_hex_show_fl <= "0" & active_num_hex_show_fl(10 downto 1);
                         end if;
 
-                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
+                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and event_tdata = GL_ADD)) then
 
                         for i in 0 to 10 loop
                             active_num_hex(i) <= x"0";
@@ -532,13 +630,76 @@ begin
                         end loop;
                         active_num_hex_show_fl(0) <= '1';
 
+                        active_num_hex_sign <= '0';
+
                     end if;
 
-                    if (event_tuser = EVENT_KEY3) then
-                        buffer_num_hex <= active_num_hex;
+                    if (event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and event_tdata = GL_ADD)) then
+                        buffer_op <= ALU_ADD;
                     end if;
+
+                    if (event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and event_tdata = GL_ADD)) then
+                        buffer_num_hex <= active_num_hex;
+                        buffer_num_hex_sign <= active_num_hex_sign;
+                    end if;
+
+                elsif alu_m_tvalid = '1' and alu_m_tready = '1' then
+
+                    active_num_hex <= alu_m_tdata_hex;
+                    active_num_hex_sign <= alu_m_tdata_sign;
+
+                    active_num_hex_show_fl(0) <= '1';
+                    for i in 1 to 10 loop
+                        if unsigned(alu_m_tuser_msn) <= to_unsigned(i, 4) then
+                            if (alu_m_tdata_hex(i) /= x"0") then
+                                active_num_hex_show_fl(i) <= '1';
+                            else
+                                active_num_hex_show_fl(i) <= '0';
+                            end if;
+                        else
+                            active_num_hex_show_fl(i) <= '0';
+                        end if;
+                    end loop;
+
                 end if;
 
+            end if;
+
+        end if;
+    end process;
+
+
+    control_alu_process : process (clk) begin
+        if rising_edge(clk) then
+
+            if resetn = '0' then
+                alu_s_tvalid <= '0';
+            else
+
+                if (event_tvalid = '1' and event_tready = '1') then
+                    if (event_tuser = EVENT_TOUCH and event_tdata = GL_EQ) then
+                        alu_s_tvalid <= '1';
+                    else
+                        alu_s_tvalid <= '0';
+                    end if;
+                elsif (alu_s_tready = '1') then
+                    alu_s_tvalid <= '0';
+                end if;
+
+            end if;
+
+            if (event_tvalid = '1' and event_tready = '1') then
+                if (event_tuser = EVENT_TOUCH and event_tdata = GL_EQ) then
+
+                    alu_s_tdata_a <= num_hex_to_slv(buffer_num_hex);
+                    alu_s_tdata_a_sign <= buffer_num_hex_sign;
+
+                    alu_s_tdata_b <= num_hex_to_slv(active_num_hex);
+                    alu_s_tdata_b_sign <= active_num_hex_sign;
+
+                    alu_s_tdata_op <= buffer_op;
+
+                end if;
             end if;
 
         end if;
@@ -597,6 +758,8 @@ begin
 
                 if event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_KEY_PAD or event_tuser = EVENT_KEY0 or
                     event_tuser = EVENT_KEY3 or event_tuser = EVENT_TOUCH) then
+                    tft_loop_tvalid <= '1';
+                elsif (alu_m_tvalid = '1' and alu_m_tready = '1') then
                     tft_loop_tvalid <= '1';
                 elsif (tft_loop_tvalid = '1' and tft_loop_tready = '1' and tft_loop_cnt = 11) then
                     tft_loop_tvalid <= '0';
