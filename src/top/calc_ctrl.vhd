@@ -72,7 +72,7 @@ architecture rtl of calc_ctrl is
     constant NUM_START_POS  : natural := 12*2-1;
 
     -- Types
-    type num_hex_t is array (natural range 0 to 11) of std_logic_vector(3 downto 0);
+    type num_hex_t is array (natural range 0 to 10) of std_logic_vector(3 downto 0);
     type sseg_hex_t is array (natural range 0 to 5) of std_logic_vector(3 downto 0);
     type rgb_ch_t is (R, G, B);
     type rgb_t is array (rgb_ch_t) of std_logic_vector(7 downto 0);
@@ -144,9 +144,9 @@ architecture rtl of calc_ctrl is
     signal event_tdata              : std_logic_vector(7 downto 0);
     signal event_tuser              : std_logic_vector(3 downto 0);
 
-    signal num_pos                  : natural range 0 to 11;
+    signal num_pos                  : natural range 0 to 10;
     signal active_num_hex           : num_hex_t;
-    signal active_num_hex_show_fl   : std_logic_vector(11 downto 0);
+    signal active_num_hex_show_fl   : std_logic_vector(10 downto 0);
     signal active_num_hex_sign      : std_logic;
     signal buffer_num_hex           : num_hex_t;
 
@@ -460,11 +460,11 @@ begin
         if rising_edge(clk) then
 
             if resetn = '0' then
-                for i in 0 to 11 loop
+                for i in 0 to 10 loop
                     active_num_hex(i) <= x"0";
                 end loop;
 
-                for i in 1 to 11 loop
+                for i in 1 to 10 loop
                     active_num_hex_show_fl(i) <= '0';
                 end loop;
                 active_num_hex_show_fl(0) <= '1';
@@ -476,8 +476,10 @@ begin
                 if (event_tvalid = '1' and event_tready = '1') then
 
                     if (event_tuser = EVENT_KEY_PAD or (event_tuser = EVENT_TOUCH and event_tdata(7 downto 4) = x"0")) then
-                        if (num_pos /= 11 and not (num_pos = 0 and event_tdata(3 downto 0) = x"0")) then
-                            num_pos <= num_pos + 1;
+                        if (num_pos /= 10) then
+                            if not (num_pos = 0 and active_num_hex(0) = x"0") then
+                                num_pos <= num_pos + 1;
+                            end if;
                         end if;
                     elsif (event_tuser = EVENT_TOUCH and event_tdata = GL_BACK) then
                         if (num_pos > 0) then
@@ -489,42 +491,43 @@ begin
 
                     if (event_tuser = EVENT_KEY_PAD or (event_tuser = EVENT_TOUCH and event_tdata(7 downto 4) = x"0")) then
 
-                        if (num_pos /= 11) then
-                            for i in 1 to 11 loop
+                        if (num_pos /= 10) then
+                            for i in 1 to 10 loop
                                 active_num_hex(i) <= active_num_hex(i-1);
                             end loop;
                             active_num_hex(0) <= event_tdata(3 downto 0);
 
-                            if (num_pos > 0) then
-                                active_num_hex_show_fl <= active_num_hex_show_fl(10 downto 0) & "1";
+                            if not (num_pos = 0 and active_num_hex(0) = x"0") then
+                                active_num_hex_show_fl <= active_num_hex_show_fl(9 downto 0) & "1";
                             end if;
                         end if;
+
                     elsif (event_tuser = EVENT_TOUCH and event_tdata = GL_NEG) then
                         active_num_hex_sign <= not active_num_hex_sign;
 
                     elsif (event_tuser = EVENT_TOUCH and event_tdata = GL_BACK) then
 
-                        active_num_hex(11) <= x"0";
-                        for i in 0 to 10 loop
+                        active_num_hex(10) <= x"0";
+                        for i in 0 to 9 loop
                             active_num_hex(i) <= active_num_hex(i+1);
                         end loop;
 
                         if (num_pos = 0 or num_pos = 1) then
-                            for i in 1 to 11 loop
+                            for i in 1 to 10 loop
                                 active_num_hex_show_fl(i) <= '0';
                             end loop;
                             active_num_hex_show_fl(0) <= '1';
                         else
-                            active_num_hex_show_fl <= "0" & active_num_hex_show_fl(11 downto 1);
+                            active_num_hex_show_fl <= "0" & active_num_hex_show_fl(10 downto 1);
                         end if;
 
                     elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3) then
 
-                        for i in 0 to 11 loop
+                        for i in 0 to 10 loop
                             active_num_hex(i) <= x"0";
                         end loop;
 
-                        for i in 1 to 11 loop
+                        for i in 1 to 10 loop
                             active_num_hex_show_fl(i) <= '0';
                         end loop;
                         active_num_hex_show_fl(0) <= '1';

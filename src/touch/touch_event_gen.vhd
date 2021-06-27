@@ -54,8 +54,8 @@ architecture rtl of touch_event_gen is
     constant GL_BACK            : natural := 28;
     constant GL_NULL            : natural := 29;
 
-    constant SIZE_PER_SYMBOL_X  : positive := positive(floor(real(4096/12)));
-    constant SIZE_PER_SYMBOL_Y  : positive := positive(floor(real(4096/8)));
+    constant SIZE_PER_SYMBOL_X  : positive := positive(round(real(3996.0/12)));
+    constant SIZE_PER_SYMBOL_Y  : positive := positive(round(real(4096.0/8)));
     constant SAMPLE_X           : std_logic_vector(1 downto 0) := "00";
     constant SAMPLE_Y           : std_logic_vector(1 downto 0) := "01";
     constant SAMPLE_Z           : std_logic_vector(1 downto 0) := "10";

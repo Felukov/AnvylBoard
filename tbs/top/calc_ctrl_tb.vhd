@@ -27,8 +27,7 @@ architecture rtl of calc_ctrl_tb is
             key_btn3_s_tvalid           : in std_logic;
 
             touch_s_tvalid              : in std_logic;
-            touch_s_tdata               : in std_logic_vector(11 downto 0);
-            touch_s_tuser               : in std_logic_vector(1 downto 0);
+            touch_s_tdata               : in std_logic_vector(7 downto 0);
 
             tft_upd_s_tvalid            : in std_logic;
 
@@ -69,8 +68,7 @@ architecture rtl of calc_ctrl_tb is
     signal led_m_tdata                  : std_logic_vector(3 downto 0);
 
     signal touch_s_tvalid               : std_logic := '0';
-    signal touch_s_tdata                : std_logic_vector(11 downto 0);
-    signal touch_s_tuser                : std_logic_vector(1 downto 0);
+    signal touch_s_tdata                : std_logic_vector(7 downto 0);
 
 
 begin
@@ -89,7 +87,6 @@ begin
 
         touch_s_tvalid      => touch_s_tvalid,
         touch_s_tdata       => touch_s_tdata,
-        touch_s_tuser       => touch_s_tuser,
 
         tft_upd_s_tvalid    => tft_upd_s_tvalid,
 
@@ -125,6 +122,7 @@ begin
 
     -- Stimuli
     stimuli: process begin
+
         key_btn0_s_tvalid <= '0';
         wait for 300 ns;
 
@@ -138,6 +136,16 @@ begin
         wait for CLK_PERIOD;
 
         key_btn0_s_tvalid <= '0';
+
+        for i in 0 to 12 loop
+            wait for 40*CLK_PERIOD;
+
+            key_pad_s_tvalid <= '1';
+            key_pad_s_tdata <= x"1";
+            wait for CLK_PERIOD;
+            key_pad_s_tvalid <= '0';
+        end loop;
+
         wait;
 
     end process;

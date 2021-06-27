@@ -1,6 +1,9 @@
 #Maximize window
 wm state . zoom
 
+#Show all as hex
+radix -hexadecimal
+
 puts {
   AXI Stream Divider Test Bench
 }
@@ -10,10 +13,10 @@ puts {
 # modify the rest of the script.
 
 set library_file_list {
-    design_library {"./src/utils/axis_div_u.vhd"}
-    test_library   {"./tbs/utils/axis_div_u_tb.vhd"}
+    design_library {"./src/top/calc_base_alu.vhd"}
+    test_library   {"./tbs/calc/calc_base_alu_tb.vhd"}
 }
-set top_level test_library.axis_div_u_tb
+set top_level test_library.calc_base_alu_tb
 set wave_patterns {
     /*
     /uut/*

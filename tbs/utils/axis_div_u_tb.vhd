@@ -1,13 +1,17 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use ieee.math_real.all;
 
 entity axis_div_u_tb is
 end entity axis_div_u_tb;
 
 architecture rtl of axis_div_u_tb is
     constant CLK_PERIOD     : time := 10 ns;
-    constant MAX_WIDTH      : natural := 12;
+    constant MAX_WIDTH      : natural := 16;
+
+    constant SIZE_PER_SYMBOL_X  : positive := positive(round(real((4096.0)/12)));
+
 
     signal clk              : std_logic;
     signal resetn           : std_logic;
@@ -81,11 +85,19 @@ begin
         wait until rising_edge(clk);
 
         div_s_tvalid <= '1';
-        div_s_tdata(2*MAX_WIDTH-1 downto MAX_WIDTH) <= x"FFF";
-        div_s_tdata(MAX_WIDTH-1 downto 0) <= x"001";
+        div_s_tdata(2*MAX_WIDTH-1 downto MAX_WIDTH) <= x"FA00"; -- 4000 * 16
+        div_s_tdata(MAX_WIDTH-1 downto 0) <= std_logic_vector(to_unsigned(SIZE_PER_SYMBOL_X, MAX_WIDTH));
 
-        div_s_tuser(2*MAX_WIDTH-1 downto MAX_WIDTH) <= x"FFF";
-        div_s_tuser(MAX_WIDTH-1 downto 0) <= x"001";
+        div_s_tuser(2*MAX_WIDTH-1 downto MAX_WIDTH) <= x"FA00";
+        div_s_tuser(MAX_WIDTH-1 downto 0) <= std_logic_vector(to_unsigned(SIZE_PER_SYMBOL_X, MAX_WIDTH));
+        wait until rising_edge(clk) and div_s_tready = '1';
+
+        div_s_tvalid <= '1';
+        div_s_tdata(2*MAX_WIDTH-1 downto MAX_WIDTH) <= x"FFFF";
+        div_s_tdata(MAX_WIDTH-1 downto 0) <= x"0001";
+
+        div_s_tuser(2*MAX_WIDTH-1 downto MAX_WIDTH) <= x"FFFF";
+        div_s_tuser(MAX_WIDTH-1 downto 0) <= x"0001";
         wait until rising_edge(clk) and div_s_tready = '1';
 
 

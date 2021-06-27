@@ -1,6 +1,9 @@
 #Maximize window
 wm state . zoom
 
+#Show all as hex
+radix -hexadecimal
+
 puts {
   AXI Stream Divider Test Bench
 }
@@ -10,13 +13,19 @@ puts {
 # modify the rest of the script.
 
 set library_file_list {
-    design_library {"./src/utils/axis_div_u.vhd"}
-    test_library   {"./tbs/utils/axis_div_u_tb.vhd"}
+    design_library {
+        "./src/top/calc_alu.vhd"
+        "./src/top/calc_base_alu.vhd"
+    }
+    test_library   {
+        "./tbs/calc/calc_alu_tb.vhd"
+    }
 }
-set top_level test_library.axis_div_u_tb
+set top_level test_library.calc_alu_tb
 set wave_patterns {
     /*
     /uut/*
+    /uut/calc_base_alu_inst/*
 }
 set wave_radices {
     unsigned {n d q r r2 i}
@@ -52,7 +61,7 @@ foreach {library file_list} $library_file_list {
 
 set last_compile_time $time_now
 
-eval vsim $top_level -L design_library
+eval vsim -novopt $top_level -L design_library
 
 if [llength $wave_patterns] {
   noview wave
@@ -69,5 +78,5 @@ if [llength $wave_patterns] {
 }
 
 # Run the simulation
-run 5us
+run 7us
 
