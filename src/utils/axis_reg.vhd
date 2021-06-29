@@ -68,14 +68,14 @@ begin
             if (resetn = '0') then
                 tmp_tvalid <= '0';
             else
-                if in_tvalid = '1' and tmp_tvalid = '0' and tmp_tready = '0' then
+                if in_tvalid = '1' and out_tvalid = '1' and out_tready = '0' then
                     tmp_tvalid <= '1';
                 elsif (tmp_tready = '1') then
                     tmp_tvalid <= '0';
                 end if;
             end if;
 
-            if in_tvalid = '1' and tmp_tvalid = '0' and tmp_tready = '0' then
+            if in_tvalid = '1' and tmp_tvalid = '0' then
                 tmp_tdata <= in_tdata;
             end if;
 
@@ -87,17 +87,21 @@ begin
             if resetn = '0' then
                 out_tvalid <= '0';
             else
-                if (in_tvalid = '1' and in_tready = '1') or (tmp_tvalid = '1' and tmp_tready = '1') then
+                if (in_tvalid = '1' or tmp_tvalid = '1') then
                     out_tvalid <= '1';
                 elsif (out_tready = '1') then
                     out_tvalid <= '0';
                 end if;
             end if;
 
-            if (tmp_tvalid = '1' and tmp_tready = '1') then
-                out_tdata <= tmp_tdata;
-            elsif (in_tvalid = '1' and in_tready = '1' and tmp_tready = '1') then
-                out_tdata <= in_tdata;
+            if (out_tvalid = '0' or (out_tvalid = '1' and out_tready = '1')) then
+
+                if (tmp_tvalid = '1') then
+                    out_tdata <= tmp_tdata;
+                elsif (in_tvalid = '1') then
+                    out_tdata <= in_tdata;
+                end if;
+
             end if;
 
         end if;

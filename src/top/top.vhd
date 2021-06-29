@@ -76,7 +76,14 @@ entity top is
         TP_PENIRQ_I             : in std_logic;
 
         RS232_UART_TX           : out std_logic;
-        RS232_UART_RX           : in std_logic
+        RS232_UART_RX           : in std_logic;
+
+        OLED_SDIN               : out std_logic;
+        OLED_SCLK               : out std_logic;
+        OLED_DC                 : out std_logic;
+        OLED_RES                : out std_logic;
+        OLED_VBAT               : out std_logic;
+        OLED_VDD                : out std_logic
     );
 end top;
 
@@ -377,6 +384,19 @@ architecture Behavioral of top is
             event_m_tdata               : out std_logic_vector(7 downto 0)
         );
     end component touch_event_gen;
+
+    component oled_ctrl is
+        port (
+            CLK             : in std_logic;
+            resetn          : in std_logic;
+            SDIN            : out std_logic;
+            SCLK            : out std_logic;
+            DC              : out std_logic;
+            RES             : out std_logic;
+            VBAT            : out std_logic;
+            VDD             : out std_logic
+        );
+    end component;
 
     --Local signals
     signal sys_clk_ibufg                : std_logic;
@@ -784,6 +804,18 @@ begin
         tft_m_tuser         => tft_vid_gen_tuser,
 
         led_m_tdata         => LED(7 downto 4)
+    );
+
+
+    oled_ctrl_inst: oled_ctrl port map (
+        clk                 => mem_clk,
+        resetn              => mem_calib_done,
+        SDIN                => OLED_SDIN,
+        SCLK                => OLED_SCLK,
+        DC                  => OLED_DC,
+        RES                 => OLED_RES,
+        VBAT                => OLED_VBAT,
+        VDD                 => OLED_VDD
     );
 
 

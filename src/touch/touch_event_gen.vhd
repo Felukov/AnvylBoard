@@ -264,7 +264,7 @@ begin
                 event_mask <= '0';
             else
 
-                if (event_tvalid = '1') then
+                if (event_tvalid = '1' and event_mask = '0') then
                     if event_cnt = 0 or (event_cnt > 0 and event_glyph = glyph) then
                         event_cnt <= (event_cnt + 1) mod 16;
                     else
@@ -280,7 +280,7 @@ begin
                     timer_cmd_tvalid <= '0';
                 end if;
 
-                if (event_tvalid = '1' and event_cnt = 15) then
+                if (event_tvalid = '1' and event_mask = '0' and event_cnt = 15) then
                     event_mask <= '1';
                 elsif(pulse_tvalid = '1') then
                     event_mask <= '0';
@@ -288,11 +288,11 @@ begin
 
             end if;
 
-            if (event_tvalid = '1' and event_cnt = 0) then
+            if (event_tvalid = '1' and event_mask = '0' and event_cnt = 0) then
                 event_glyph <= glyph;
             end if;
 
-            if (event_tvalid = '1' and event_cnt = 15) then
+            if (event_tvalid = '1' and event_mask = '0' and event_cnt = 15) then
                 event_m_tdata <= std_logic_vector(to_unsigned(event_glyph, 8));
             end if;
 
