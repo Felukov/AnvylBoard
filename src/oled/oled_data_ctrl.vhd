@@ -37,45 +37,35 @@ architecture rtl of oled_data_ctrl is
 
     component oled_spi_ctrl
         port(
-            CLK        : in std_logic;
-            resetn     : in std_logic;
-            SPI_EN     : in std_logic;
-            SPI_DATA   : in std_logic_vector(7 downto 0);
-            CS         : out std_logic;
-            SDO        : out std_logic;
-            SCLK       : out std_logic;
-            SPI_FIN    : out std_logic
+            CLK         : in std_logic;
+            resetn      : in std_logic;
+            SPI_EN      : in std_logic;
+            SPI_DATA    : in std_logic_vector(7 downto 0);
+            CS          : out std_logic;
+            SDO         : out std_logic;
+            SCLK        : out std_logic;
+            SPI_FIN     : out std_logic
         );
     end component;
 
     component oled_delay
         port(
-            clk        : in std_logic;
-            resetn     : in std_logic;
-            delay_ms   : in std_logic_vector(11 downto 0);
-            delay_en   : in std_logic;
-            delay_fin  : out std_logic
+            clk         : in std_logic;
+            resetn      : in std_logic;
+            delay_ms    : in std_logic_vector(11 downto 0);
+            delay_en    : in std_logic;
+            delay_fin   : out std_logic
         );
     end component;
 
     --character library, latency = 1
     component oled_char_lib
         port (
-            clk       : in std_logic; --attach system clock to it
-            addra      : in std_logic_vector(10 downto 0); --first 8 bits is the ascii value of the character the last 3 bits are the parts of the char
-            douta      : out std_logic_vector(7 downto 0) --data byte out
+            clk         : in std_logic; --attach system clock to it
+            addra       : in std_logic_vector(10 downto 0); --first 8 bits is the ascii value of the character the last 3 bits are the parts of the char
+            douta       : out std_logic_vector(7 downto 0) --data byte out
         );
     end component;
-
-    -- COMPONENT butterfly_ram
-    -- PORT (
-    --     clk : IN std_logic;
-    --     wea : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-    --     addra : IN STD_LOGIC_VECTOR(8 DOWNTO 0);
-    --     dina : IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-    --     douta : OUT STD_LOGIC_VECTOR(7 DOWNTO 0)
-    -- );
-    -- end COMPONENT;
 
     --States for state machine
     type states is (
@@ -115,54 +105,57 @@ architecture rtl of oled_data_ctrl is
         Transition5
     );
 
-    type OledMem is array(0 to 7, 0 to 15) of STD_LOGIC_VECTOR(7 downto 0);
+    type oledmem is array(0 to 7, 0 to 15) of std_logic_vector(7 downto 0);
 
     --Variable that contains what the screen will be after the next UpdateScreen state
     signal current_screen : OledMem;
     --Constant that holds "Zedboard's OLED Display" followed by Alphabet and numbers
-    constant zedboard_screen : OledMem:= (
-                                        (X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20"),
-                                        (X"50",X"6D",X"6F",X"64",X"4F",X"4C",X"45",X"44",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20"),
-                                        (X"44",X"69",X"67",X"69",X"6C",X"65",X"6E",X"74",X"27",X"73",X"20",X"20",X"20",X"20",X"20",X"20"),
-                                        (X"54",X"68",X"69",X"73",X"20",X"69",X"73",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20"),
-                                        (X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20"),
-                                        (X"50",X"6D",X"6F",X"64",X"4F",X"4C",X"45",X"44",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20"),
-                                        (X"44",X"69",X"67",X"69",X"6C",X"65",X"6E",X"74",X"27",X"73",X"20",X"20",X"20",X"20",X"20",X"20"),
-                                        (X"54",X"68",X"69",X"73",X"20",X"69",X"73",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20")
-                                        );
+    --This is
+    --Digilent's
+    --PmodOLED
+    constant zedboard_screen : OledMem := (
+        (X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20"),
+        (X"50",X"6D",X"6F",X"64",X"4F",X"4C",X"45",X"44",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20"), -- PmodOLED
+        (X"44",X"69",X"67",X"69",X"6C",X"65",X"6E",X"74",X"27",X"73",X"20",X"20",X"20",X"20",X"20",X"20"), -- Digilent's
+        (X"54",X"68",X"69",X"73",X"20",X"69",X"73",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20"), -- This is
+        (X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20"),
+        (X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20"),
+        (X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20"),
+        (X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20",X"20")
+    );
 
     --Current overall state of the state machine
-    signal current_state : states := Idle;
+    signal current_state        : states := Idle;
     --State to go to after the SPI transmission is finished
-    signal after_state : states;
+    signal after_state          : states;
     --State to go to after the set page sequence
-    signal after_page_state : states;
+    signal after_page_state     : states;
     --State to go to after sending the character sequence
-    signal after_char_state : states;
+    signal after_char_state     : states;
     --State to go to after the UpdateScreen is finished
-    signal after_update_state : states;
+    signal after_update_state   : states;
 
-    --Contains the value to be outputted to DC
-    signal temp_dc : STD_LOGIC := '0';
+    --contains the value to be outputted to dc
+    signal temp_dc              : std_logic := '0';
 
-    --Variables used in the Delay Controller Block
-    signal temp_delay_ms : STD_LOGIC_VECTOR (11 downto 0); --amount of ms to delay
-    signal temp_delay_en : STD_LOGIC := '0'; --Enable signal for the delay block
-    signal temp_delay_fin : STD_LOGIC; --Finish signal for the delay block
+    --variables used in the delay controller block
+    signal temp_delay_ms        : std_logic_vector (11 downto 0); --amount of ms to delay
+    signal temp_delay_en        : std_logic := '0'; --enable signal for the delay block
+    signal temp_delay_fin       : std_logic; --finish signal for the delay block
 
-    --Variables used in the SPI controller block
-    signal temp_spi_en : STD_LOGIC := '0'; --Enable signal for the SPI block
-    signal temp_spi_data : STD_LOGIC_VECTOR (7 downto 0) := (others => '0'); --Data to be sent out on SPI
-    signal temp_spi_fin : STD_LOGIC; --Finish signal for the SPI block
+    --variables used in the spi controller block
+    signal temp_spi_en          : std_logic := '0'; --enable signal for the spi block
+    signal temp_spi_data        : std_logic_vector (7 downto 0) := (others => '0'); --data to be sent out on spi
+    signal temp_spi_fin         : std_logic; --finish signal for the spi block
 
-    signal temp_char : STD_LOGIC_VECTOR (7 downto 0) := (others => '0'); --Contains ASCII value for character
-    signal temp_addr : STD_LOGIC_VECTOR (10 downto 0) := (others => '0'); --Contains address to BYTE needed in memory
-    signal temp_dout : STD_LOGIC_VECTOR (7 downto 0); --Contains byte outputted from memory
-    signal temp_dout_inv : STD_LOGIC_VECTOR (7 downto 0); --Contains byte outputted from memory
-    signal temp_index : integer range 0 to 15 := 15; --Current character on page
+    signal temp_char            : std_logic_vector (7 downto 0) := (others => '0'); --contains ascii value for character
+    signal temp_addr            : std_logic_vector (10 downto 0) := (others => '0'); --contains address to byte needed in memory
+    signal temp_dout            : std_logic_vector (7 downto 0); --contains byte outputted from memory
+    signal temp_dout_inv        : std_logic_vector (7 downto 0); --contains byte outputted from memory
+    signal temp_index           : integer range 0 to 15 := 15; --current character on page
 
-    signal page_addr : STD_LOGIC_VECTOR (2 downto 0) := (others => '0'); --Current page
-    signal page_shft : std_logic_vector (5 downto 0) := "100000";
+    signal page_addr            : std_logic_vector (2 downto 0) := (others => '0'); --current page
+    signal page_shft            : std_logic_vector (5 downto 0) := "100000";
 
 begin
     DC <= temp_dc;
@@ -192,7 +185,7 @@ begin
 
     -- Memory block
     char_lib_comp_inst : oled_char_lib port map (
-        clk        => clk,
+        clk         => clk,
         addra       => temp_addr,
         douta       => temp_dout
     );
@@ -209,7 +202,7 @@ begin
                 case(current_state) is
 					--Idle until EN pulled high then intialize Page to 0 and go to state Alphabet afterwards
 					when Idle =>
-						if(EN = '1') then
+						if (EN = '1') then
 							page_addr <= "000";
 							current_state <= SetPageAddr;
 							after_page_state <= ZedboardScreen;--Alphabet;
@@ -221,9 +214,10 @@ begin
 						after_update_state <= Wait3;
 						current_state <= UpdateScreen;
 					when Wait3 =>
-						temp_delay_ms <= "011111010000"; --2000
-						after_state <= ScrollSetPageAddr;
-						current_state <= Transition3;
+                        current_state <= Wait3;
+						--temp_delay_ms <= "011111010000"; --2000
+						--after_state <= ScrollSetPageAddr;
+						--current_state <= Transition3;
 
 					-- Scroll through the OLED memory
 					when ScrollSetPageAddr =>
@@ -234,8 +228,8 @@ begin
 						after_state <= ScrollDisplay2;
 						current_state <= Transition1;
 					when ScrollDisplay2 =>
-						temp_delay_ms <= "000001111101"; --125 (8 lines per second)
-						page_shft <= page_shft + 1;
+						temp_delay_ms <= "000011111101"; --125 (8 lines per second)
+						page_shft <= page_shft - 1;
 						after_state <= ScrollDisplay1;
 						current_state <= Transition3;
 

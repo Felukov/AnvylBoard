@@ -149,6 +149,7 @@ architecture rtl of calc_ctrl is
             alu_m_tdata         : out std_logic_vector(11*4-1 downto 0);
             alu_m_tdata_sign    : out std_logic;
             alu_m_tuser_cb      : out std_logic;
+            alu_m_tuser_zf      : out std_logic;
             alu_m_tuser_msn     : out std_logic_vector(3 downto 0)
 
         );
@@ -193,9 +194,11 @@ architecture rtl of calc_ctrl is
     signal event_tuser              : std_logic_vector(3 downto 0);
 
     signal num_pos                  : natural range 0 to 10;
+    signal active_num_hex_zf        : std_logic;
     signal active_num_hex           : num_hex_t;
     signal active_num_hex_show_fl   : std_logic_vector(10 downto 0);
     signal active_num_hex_sign      : std_logic;
+    signal buffer_tvalid            : std_logic;
     signal buffer_num_hex           : num_hex_t;
     signal buffer_num_hex_sign      : std_logic;
     signal buffer_op                : std_logic_vector(2 downto 0);
@@ -212,6 +215,7 @@ architecture rtl of calc_ctrl is
     signal alu_m_tdata              : std_logic_vector(11*4-1 downto 0);
     signal alu_m_tdata_hex          : num_hex_t;
     signal alu_m_tdata_sign         : std_logic;
+    signal alu_m_tuser_zf           : std_logic;
     signal alu_m_tuser_cb           : std_logic;
     signal alu_m_tuser_msn          : std_logic_vector(3 downto 0);
 
@@ -293,7 +297,7 @@ begin
     sseg_hex(5) <= x"0";
     sseg_hex(4) <= x"0";
     sseg_hex(3) <= x"0";
-    sseg_hex(2) <= x"0";
+    sseg_hex(2) <= std_logic_vector(to_unsigned(num_pos, 4));
     sseg_hex(1) <= touch_glyph( 7 downto 4);
     sseg_hex(0) <= touch_glyph( 3 downto 0);
 
@@ -446,6 +450,7 @@ begin
         alu_m_tdata         => alu_m_tdata,
         alu_m_tdata_sign    => alu_m_tdata_sign,
         alu_m_tuser_cb      => alu_m_tuser_cb,
+        alu_m_tuser_zf      => alu_m_tuser_zf,
         alu_m_tuser_msn     => alu_m_tuser_msn
     );
 
@@ -566,10 +571,12 @@ begin
                     active_num_hex_show_fl(i) <= '0';
                 end loop;
                 active_num_hex_show_fl(0) <= '1';
-
                 active_num_hex_sign <= '0';
+                active_num_hex_zf <= '1';
 
                 num_pos <= 0;
+
+                buffer_tvalid <= '0';
             else
                 if (event_tvalid = '1' and event_tready = '1') then
 
@@ -583,8 +590,32 @@ begin
                         if (num_pos > 0) then
                             num_pos <= num_pos - 1;
                         end if;
-                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and event_tdata = GL_ADD)) then
+                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (event_tdata = GL_ADD or event_tdata = GL_SUB))) then
                         num_pos <= 0;
+                    end if;
+
+                    if (event_tuser = EVENT_KEY_PAD or (event_tuser = EVENT_TOUCH and event_tdata(7 downto 4) = x"0")) then
+                        if (num_pos /= 10) then
+                            if (event_tdata(3 downto 0) /= x"0") then
+                                active_num_hex_zf <= '0';
+                            end if;
+                        end if;
+                    elsif (event_tuser = EVENT_TOUCH and event_tdata = GL_BACK) then
+                        if (num_pos = 0) then
+                            active_num_hex_zf <= '1';
+                        end if;
+                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (event_tdata = GL_ADD or event_tdata = GL_SUB))) then
+                        active_num_hex_zf <= '1';
+                    end if;
+
+                    if (event_tuser = EVENT_TOUCH and event_tdata = GL_BACK) then
+                        if (num_pos = 0) then
+                            active_num_hex_sign <= '0';
+                        end if;
+                    elsif (event_tuser = EVENT_TOUCH and event_tdata = GL_NEG) then
+                        if (active_num_hex_zf = '0') then
+                            active_num_hex_sign <= not active_num_hex_sign;
+                        end if;
                     end if;
 
                     if (event_tuser = EVENT_KEY_PAD or (event_tuser = EVENT_TOUCH and event_tdata(7 downto 4) = x"0")) then
@@ -599,9 +630,6 @@ begin
                                 active_num_hex_show_fl <= active_num_hex_show_fl(9 downto 0) & "1";
                             end if;
                         end if;
-
-                    elsif (event_tuser = EVENT_TOUCH and event_tdata = GL_NEG) then
-                        active_num_hex_sign <= not active_num_hex_sign;
 
                     elsif (event_tuser = EVENT_TOUCH and event_tdata = GL_BACK) then
 
@@ -619,7 +647,7 @@ begin
                             active_num_hex_show_fl <= "0" & active_num_hex_show_fl(10 downto 1);
                         end if;
 
-                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and event_tdata = GL_ADD)) then
+                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (event_tdata = GL_ADD or event_tdata = GL_SUB))) then
 
                         for i in 0 to 10 loop
                             active_num_hex(i) <= x"0";
@@ -634,19 +662,34 @@ begin
 
                     end if;
 
-                    if (event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and event_tdata = GL_ADD)) then
-                        buffer_op <= ALU_ADD;
+                    if (event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (event_tdata = GL_ADD or event_tdata = GL_SUB))) then
+                        buffer_tvalid <= '1';
                     end if;
 
-                    if (event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and event_tdata = GL_ADD)) then
+                    if (event_tuser = EVENT_KEY3 or event_tuser = EVENT_TOUCH) then
+                        case event_tdata(4 downto 0) is
+                            when GL_ADD =>
+                                buffer_op <= ALU_ADD;
+                            when GL_SUB =>
+                                buffer_op <= ALU_SUB;
+                            when others =>
+                                null;
+                        end case;
+                    end if;
+
+                    if (event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (event_tdata = GL_ADD or event_tdata = GL_SUB))) then
                         buffer_num_hex <= active_num_hex;
                         buffer_num_hex_sign <= active_num_hex_sign;
                     end if;
 
                 elsif alu_m_tvalid = '1' and alu_m_tready = '1' then
 
+                    buffer_tvalid <= '0';
+
                     active_num_hex <= alu_m_tdata_hex;
                     active_num_hex_sign <= alu_m_tdata_sign;
+                    active_num_hex_zf <= alu_m_tuser_zf;
+                    num_pos <= to_integer(unsigned(alu_m_tuser_msn));
 
                     active_num_hex_show_fl(0) <= '1';
                     for i in 1 to 10 loop
@@ -677,7 +720,7 @@ begin
             else
 
                 if (event_tvalid = '1' and event_tready = '1') then
-                    if (event_tuser = EVENT_TOUCH and event_tdata = GL_EQ) then
+                    if (buffer_tvalid = '1' and event_tuser = EVENT_TOUCH and event_tdata = GL_EQ) then
                         alu_s_tvalid <= '1';
                     else
                         alu_s_tvalid <= '0';
@@ -689,7 +732,8 @@ begin
             end if;
 
             if (event_tvalid = '1' and event_tready = '1') then
-                if (event_tuser = EVENT_TOUCH and event_tdata = GL_EQ) then
+
+                if (buffer_tvalid = '1' and event_tuser = EVENT_TOUCH and event_tdata = GL_EQ) then
 
                     alu_s_tdata_a <= num_hex_to_slv(buffer_num_hex);
                     alu_s_tdata_a_sign <= buffer_num_hex_sign;
@@ -714,7 +758,7 @@ begin
                 sseg_loop_cnt <= 0;
                 sseg_tvalid <= '0';
             else
-                if event_tvalid = '1' and event_tready = '1' and (event_tuser = EVENT_TOUCH) then
+                if event_tvalid = '1' and event_tready = '1' then
                     sseg_loop_tvalid <= '1';
                 elsif (sseg_loop_tvalid = '1' and sseg_loop_cnt = 5) then
                     sseg_loop_tvalid <= '0';
@@ -735,7 +779,7 @@ begin
             sseg_tdata <= sseg_hex(sseg_loop_cnt);
             sseg_tuser <= SSEG_DIGIT;
 
-            if (sseg_loop_cnt < 2) then
+            if (sseg_loop_cnt < 3) then
                 sseg_tuser <= SSEG_DIGIT;
             else
                 sseg_tuser <= SSEG_NULL;
