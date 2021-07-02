@@ -20,8 +20,8 @@ entity oled_delay is
     port (
         clk         : in std_logic; --system clk
         resetn      : in std_logic;  --global rst (synchronous)
-        delay_ms    : in std_logic_vector (11 downto 0); --amount of ms to delay
         delay_en    : in std_logic; --delay block enable
+        delay_ms    : in std_logic_vector (11 downto 0); --amount of ms to delay
         delay_fin   : out std_logic --delay finish flag
     );
 end oled_delay;

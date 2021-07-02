@@ -18,7 +18,7 @@ use ieee.std_logic_arith.all;
 
 entity oled_ctrl is
     port (
-        CLK             : in std_logic;
+        clk             : in std_logic;
         resetn          : in std_logic;
         SDIN            : out std_logic;
         SCLK            : out std_logic;
@@ -33,99 +33,124 @@ architecture rtl of oled_ctrl is
 
     component oled_init_ctrl is
         Port (
-            CLK         : in std_logic;
+            clk         : in std_logic;
             resetn      : in std_logic;
-            EN          : in std_logic;
+            en          : in std_logic;
+            fin         : out std_logic;
             CS          : out std_logic;
             SDO         : out std_logic;
             SCLK        : out std_logic;
             DC          : out std_logic;
             RES         : out std_logic;
             VBAT        : out std_logic;
-            VDD         : out std_logic;
-            FIN         : out std_logic
+            VDD         : out std_logic
         );
     end component;
 
     component oled_data_ctrl is
         Port (
-            CLK         : in std_logic;
+            clk         : in std_logic;
             resetn      : in std_logic;
-            EN          : in std_logic;
+            en          : in std_logic;
+            fin         : out std_logic;
             CS          : out std_logic;
             SDO         : out std_logic;
             SCLK        : out std_logic;
-            DC          : out std_logic;
-            FIN         : out std_logic
+            DC          : out std_logic
         );
     end component;
 
-    type states is (Idle, OledInitialize, OledExample, Done);
+    type state_t is (Idle, OledInitialize, OledExample, Done);
 
-    signal current_state     : states := Idle;
+    signal state        : state_t := Idle;
 
     signal init_en      : std_logic := '0';
     signal init_done    : std_logic;
-    signal init_cs      : std_logic;
     signal init_sdo     : std_logic;
     signal init_sclk    : std_logic;
     signal init_dc      : std_logic;
 
-    signal example_en   : std_logic := '0';
-    signal example_cs   : std_logic;
-    signal example_sdo  : std_logic;
-    signal example_sclk : std_logic;
-    signal example_dc   : std_logic;
-    signal example_done : std_logic;
+    signal data_en      : std_logic := '0';
+    signal data_sdo     : std_logic;
+    signal data_sclk    : std_logic;
+    signal data_dc      : std_logic;
+    signal data_done    : std_logic;
 
-    signal CS : std_logic;
 
 begin
 
-    oled_init_ctrl_inst: oled_init_ctrl port map(clk, resetn, init_en, init_cs, init_sdo, init_sclk, init_dc, RES, VBAT, VDD, init_done);
-    oled_data_ctrl_inst: oled_data_ctrl port map(clk, resetn, example_en, example_cs, example_sdo, example_sclk, example_dc, example_done);
+    oled_init_ctrl_inst: oled_init_ctrl port map(
+        clk             => clk,
+        resetn          => resetn,
 
-    --MUXes to indicate which outputs are routed out depending on which block is enabled
-    CS <= init_cs when (current_state = OledInitialize) else
-            example_cs;
-    SDIN <= init_sdo when (current_state = OledInitialize) else
-            example_sdo;
-    SCLK <= init_sclk when (current_state = OledInitialize) else
-            example_sclk;
-    DC <= init_dc when (current_state = OledInitialize) else
-            example_dc;
-    --END output MUXes
+        en              => init_en,
+        fin             => init_done,
 
-    --MUXes that enable blocks when in the proper states
-    init_en <= '1' when (current_state = OledInitialize) else
-                    '0';
-    example_en <= '1' when (current_state = OledExample) else
-                    '0';
+        CS              => open,
+        SDO             => init_sdo,
+        SCLK            => init_sclk,
+        DC              => init_dc,
+
+        RES             => RES,
+        VBAT            => VBAT,
+        VDD             => VDD
+    );
+
+    oled_data_ctrl_inst: oled_data_ctrl port map(
+        clk             => clk,
+        resetn          => resetn,
+
+        en              => data_en,
+        fin             => data_done,
+
+        CS              => open,
+        SDO             => data_sdo,
+        SCLK            => data_sclk,
+        DC              => data_dc
+    );
+
+    --MUXes that enable blocks when in the proper state_t
+    init_en <= '1' when (state = OledInitialize) else '0';
+    data_en <= '1' when (state = OledExample) else '0';
     --END enable MUXes
 
     process (clk) begin
-        if(rising_edge(clk)) then
-            if(resetn = '0') then
-                current_state <= Idle;
+        if rising_edge(clk) then
+            if (state = OledInitialize) then
+                SDIN <= init_sdo;
+                SCLK <= init_sclk;
+                DC <= init_dc;
             else
-                case(current_state) is
+                SDIN <= data_sdo;
+                SCLK <= data_sclk;
+                DC <= data_dc;
+            end if;
+        end if;
+    end process;
+
+    process (clk) begin
+        if rising_edge(clk) then
+            if (resetn = '0') then
+                state <= Idle;
+            else
+                case (state) is
                     when Idle =>
-                        current_state <= OledInitialize;
+                        state <= OledInitialize;
                     --Go through the initialization sequence
                     when OledInitialize =>
-                        if(init_done = '1') then
-                            current_state <= OledExample;
+                        if (init_done = '1') then
+                            state <= OledExample;
                         end if;
                     --Do example and Do nothing when finished
                     when OledExample =>
-                        if(example_done = '1') then
-                            current_state <= Done;
+                        if(data_done = '1') then
+                            state <= Done;
                         end if;
                     --Do Nothing
                     when Done =>
-                        current_state <= Done;
+                        state <= Done;
                     when others =>
-                        current_state <= Idle;
+                        state <= Idle;
                 end case;
             end if;
         end if;

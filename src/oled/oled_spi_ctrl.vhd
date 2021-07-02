@@ -56,17 +56,17 @@ begin
     spi_fin <= '1' when (current_state = Done) else '0';
 
     fsm_proc : process (clk) begin
-        if(rising_edge(clk)) then
-            if(resetn = '0') then --Synchronous resetn
+        if (rising_edge(clk)) then
+            if (resetn = '0') then --Synchronous resetn
                 current_state <= Idle;
             else
                 case (current_state) is
                     when Idle => --Wait for spi_en to go high
-                        if(spi_en = '1') then
+                        if (spi_en = '1') then
                             current_state <= Send;
                         end if;
                     when Send => --Start sending bits, transition out when all bits are sent and SCLK is high
-                        if(shift_counter = "1000" and falling = '0') then
+                        if (shift_counter = "1000" and falling = '0') then
                             current_state <= Hold1;
                         end if;
                     when Hold1 => --Hold CS low for a bit
@@ -78,7 +78,7 @@ begin
                     when Hold4 => --Hold CS low for a bit
                         current_state <= Done;
                     when Done => --Finish SPI transimission wait for spi_en to go low
-                        if(spi_en = '0') then
+                        if (spi_en = '0') then
                             current_state <= Idle;
                         end if;
                     when others =>

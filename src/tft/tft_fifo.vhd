@@ -1,9 +1,9 @@
-library IEEE;
-library UNISIM;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
+library ieee;
+library unisim;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 use ieee.std_logic_unsigned.all;
-use UNISIM.VComponents.all;
+use unisim.vcomponents.all;
 
 entity tft_fifo is
     port (
@@ -22,73 +22,69 @@ end entity tft_fifo;
 
 architecture rtl of tft_fifo is
 
-    constant FIFO_MAX_ADDR  : natural := 255;
+    constant FIFO_MAX_SIZE  : natural := 2**8;
 
-    type ram_t is array (FIFO_MAX_ADDR downto 0) of std_logic_vector(127 downto 0);
+    type ram_t is array (FIFO_MAX_SIZE-1 downto 0) of std_logic_vector(127 downto 0);
 
-    signal wr_addr          : integer range 0 to FIFO_MAX_ADDR;
-    signal wr_addr_next     : integer range 0 to FIFO_MAX_ADDR;
-    signal rd_addr          : integer range 0 to FIFO_MAX_ADDR;
-    signal rd_addr_next     : integer range 0 to FIFO_MAX_ADDR;
+    signal wr_addr          : integer range 0 to FIFO_MAX_SIZE-1;
+    signal wr_addr_next     : integer range 0 to FIFO_MAX_SIZE-1;
+    signal rd_addr          : integer range 0 to FIFO_MAX_SIZE-1;
+    signal rd_addr_next     : integer range 0 to FIFO_MAX_SIZE-1;
     signal fifo_ram         : ram_t;
     signal q_tdata          : std_logic_vector(127 downto 0);
 
-    signal in_tvalid        : std_logic;
-    signal in_tready        : std_logic;
+    signal wr_data_tvalid   : std_logic;
+    signal wr_data_tready   : std_logic;
+    signal wr_data_tdata    : std_logic_vector(127 downto 0);
+
+    signal data_tvalid      : std_logic;
+    signal data_tready      : std_logic;
+    signal data_tdata       : std_logic_vector(127 downto 0);
 
     signal out_tvalid       : std_logic;
     signal out_tready       : std_logic;
     signal out_tdata        : std_logic_vector(127 downto 0);
 
-    signal fifo_is_empty    : boolean;
-    signal fifo_is_full     : boolean;
-
 begin
 
-    fifo_s_tready   <= '0' when fifo_is_full else '1';
+    wr_data_tvalid  <= fifo_s_tvalid;
+    fifo_s_tready   <= wr_data_tready;
+    wr_data_tdata   <= fifo_s_tdata;
+
+    wr_data_tready  <= '1' when wr_addr_next /= rd_addr else '0';
 
     fifo_m_tvalid   <= out_tvalid;
-    fifo_m_tdata    <= out_tdata;
     out_tready      <= fifo_m_tready;
+    fifo_m_tdata    <= out_tdata;
 
-    in_tready       <= '1' when out_tvalid = '0' or (out_tvalid = '1' and out_tready = '1') else '0';
+    data_tvalid     <= '1' when wr_addr /= rd_addr else '0';
+    data_tready     <= '1' when out_tvalid = '0' or (out_tvalid = '1' and out_tready = '1') else '0';
 
-    wr_addr_next    <= (wr_addr + 1) mod (FIFO_MAX_ADDR+1);
-    rd_addr_next    <= (rd_addr + 1) mod (FIFO_MAX_ADDR+1);
-
-    fifo_is_empty   <= wr_addr = rd_addr;
-    fifo_is_full    <= wr_addr_next = rd_addr;
+    wr_addr_next    <= (wr_addr + 1) mod FIFO_MAX_SIZE;
+    rd_addr_next    <= (rd_addr + 1) mod FIFO_MAX_SIZE;
 
     q_tdata         <= fifo_ram(rd_addr);
 
-    process (clk) begin
+
+    write_proc: process (clk) begin
         if rising_edge(clk) then
             if resetn = '0' then
                 wr_addr <= 0;
-                in_tvalid <= '0';
             else
-
-                if fifo_s_tvalid = '1' and not fifo_is_full then
+                if wr_data_tvalid = '1' and wr_data_tready = '1' then
                     wr_addr <= wr_addr_next;
                 end if;
-
-                if not fifo_is_empty then
-                    in_tvalid <= '1';
-                elsif in_tready = '1' then
-                    in_tvalid <= '0';
-                end if;
-
             end if;
 
-            if fifo_s_tvalid = '1' and not fifo_is_full then
-                fifo_ram(wr_addr) <= fifo_s_tdata;
+            if wr_data_tvalid = '1' and wr_data_tready = '1' then
+                fifo_ram(wr_addr) <= wr_data_tdata;
             end if;
 
         end if;
     end process;
 
 
-    process (clk) begin
+    read_proc: process (clk) begin
         if rising_edge(clk) then
 
             if resetn = '0' then
@@ -96,11 +92,11 @@ begin
                 out_tvalid <= '0';
             else
 
-                if in_tvalid = '1' and in_tready = '1' and not fifo_is_empty then
+                if data_tvalid = '1' and data_tready = '1' then
                     rd_addr <= rd_addr_next;
                 end if;
 
-                if in_tvalid = '1' and in_tready = '1' and not fifo_is_empty then
+                if data_tvalid = '1' and data_tready = '1' then
                     out_tvalid <= '1';
                 elsif out_tready = '1' then
                     out_tvalid <= '0';
@@ -108,8 +104,7 @@ begin
 
             end if;
 
-            --if in_tvalid = '1' and in_tready = '1' and not fifo_is_empty then
-            if in_tready = '1' then
+            if data_tready = '1' then
                 out_tdata <= q_tdata;
             end if;
 
