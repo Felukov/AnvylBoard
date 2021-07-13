@@ -75,6 +75,7 @@ architecture rtl of calc_ctrl is
     constant ALU_OR         : std_logic_vector(2 downto 0) := "011";
     constant ALU_XOR        : std_logic_vector(2 downto 0) := "100";
     constant ALU_INV        : std_logic_vector(2 downto 0) := "101";
+    constant ALU_MUL        : std_logic_vector(2 downto 0) := "110";
 
     constant NUM_START_POS  : natural := 12*2-1;
 
@@ -590,7 +591,10 @@ begin
                         if (num_pos > 0) then
                             num_pos <= num_pos - 1;
                         end if;
-                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (event_tdata = GL_ADD or event_tdata = GL_SUB))) then
+                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (
+                        event_tdata = GL_ADD or event_tdata = GL_SUB or event_tdata = GL_AND or
+                        event_tdata = GL_OR or event_tdata = GL_XOR or event_tdata = GL_MUL)))
+                    then
                         num_pos <= 0;
                     end if;
 
@@ -604,7 +608,10 @@ begin
                         if (num_pos = 0) then
                             active_num_hex_zf <= '1';
                         end if;
-                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (event_tdata = GL_ADD or event_tdata = GL_SUB))) then
+                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (
+                        event_tdata = GL_ADD or event_tdata = GL_SUB or event_tdata = GL_AND or
+                        event_tdata = GL_OR or event_tdata = GL_XOR or event_tdata = GL_MUL)))
+                    then
                         active_num_hex_zf <= '1';
                     end if;
 
@@ -647,7 +654,10 @@ begin
                             active_num_hex_show_fl <= "0" & active_num_hex_show_fl(10 downto 1);
                         end if;
 
-                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (event_tdata = GL_ADD or event_tdata = GL_SUB))) then
+                    elsif (event_tuser = EVENT_KEY0 or event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (
+                            event_tdata = GL_ADD or event_tdata = GL_SUB or event_tdata = GL_AND or
+                            event_tdata = GL_OR or event_tdata = GL_XOR or event_tdata = GL_MUL)))
+                    then
 
                         for i in 0 to 10 loop
                             active_num_hex(i) <= x"0";
@@ -662,7 +672,10 @@ begin
 
                     end if;
 
-                    if (event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (event_tdata = GL_ADD or event_tdata = GL_SUB))) then
+                    if (event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (
+                        event_tdata = GL_ADD or event_tdata = GL_SUB or event_tdata = GL_AND or
+                        event_tdata = GL_OR or event_tdata = GL_XOR or event_tdata = GL_MUL)))
+                    then
                         buffer_tvalid <= '1';
                     end if;
 
@@ -672,12 +685,23 @@ begin
                                 buffer_op <= ALU_ADD;
                             when GL_SUB =>
                                 buffer_op <= ALU_SUB;
+                            when GL_AND =>
+                                buffer_op <= ALU_AND;
+                            when GL_OR =>
+                                buffer_op <= ALU_OR;
+                            when GL_XOR =>
+                                buffer_op <= ALU_XOR;
+                            when GL_MUL =>
+                                buffer_op <= ALU_MUL;
                             when others =>
                                 null;
                         end case;
                     end if;
 
-                    if (event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (event_tdata = GL_ADD or event_tdata = GL_SUB))) then
+                    if (event_tuser = EVENT_KEY3 or (event_tuser = EVENT_TOUCH and (
+                        event_tdata = GL_ADD or event_tdata = GL_SUB or event_tdata = GL_AND or
+                        event_tdata = GL_OR or event_tdata = GL_XOR or event_tdata = GL_MUL)))
+                    then
                         buffer_num_hex <= active_num_hex;
                         buffer_num_hex_sign <= active_num_hex_sign;
                     end if;
@@ -693,12 +717,8 @@ begin
 
                     active_num_hex_show_fl(0) <= '1';
                     for i in 1 to 10 loop
-                        if unsigned(alu_m_tuser_msn) <= to_unsigned(i, 4) then
-                            if (alu_m_tdata_hex(i) /= x"0") then
-                                active_num_hex_show_fl(i) <= '1';
-                            else
-                                active_num_hex_show_fl(i) <= '0';
-                            end if;
+                        if to_unsigned(i, 4) <= unsigned(alu_m_tuser_msn) then
+                            active_num_hex_show_fl(i) <= '1';
                         else
                             active_num_hex_show_fl(i) <= '0';
                         end if;
@@ -834,9 +854,9 @@ begin
             end if;
 
             if (tft_loop_tvalid = '1' and tft_loop_tready = '1') then
-                tft_tdata.bg(R) <= x"00";
-                tft_tdata.bg(G) <= x"00";
-                tft_tdata.bg(B) <= x"00";
+                tft_tdata.bg(R) <= x"4C";
+                tft_tdata.bg(G) <= x"4C";
+                tft_tdata.bg(B) <= x"4C";
 
                 tft_tdata.fg(R) <= x"FF";
                 tft_tdata.fg(G) <= x"FF";

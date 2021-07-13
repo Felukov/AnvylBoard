@@ -105,7 +105,7 @@ architecture rtl of oled_data_ctrl is
     type oled_mem_t is array(0 to 7) of oled_line_t;
 
     --Variable that contains what the screen will be after the next UpdateScreen state
-    signal current_screen : oled_mem_t;
+    --signal current_screen : oled_mem_t;
 
     constant logo_screen_text : oled_mem_t := (
         str_to_oled_line("2021           "),
@@ -195,7 +195,7 @@ begin
 
                     --Set currentScreen to constant logo_screen_text and update the screen.
                     when LoadLogoScreen =>
-                        current_screen <= logo_screen_text;
+                        --current_screen <= logo_screen_text;
                         after_update_state <= Done;
                         current_state <= UpdateScreen;
 
@@ -210,7 +210,7 @@ begin
                     --2. If on the last character of the page transition update the page number, if on the last page(3)
                     --            then the updateScreen go to "after_update_state" after
                     when UpdateScreen =>
-                        temp_char <= current_screen(CONV_INTEGER(page_addr))(temp_index);
+                        temp_char <= logo_screen_text(CONV_INTEGER(page_addr))(temp_index);
                         if (temp_index = 0) then
                             temp_index <= 15;
                             page_addr <= page_addr + 1;

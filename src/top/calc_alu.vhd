@@ -38,6 +38,7 @@ architecture rtl of calc_alu is
     constant ALU_OR             : std_logic_vector(2 downto 0) := "011";
     constant ALU_XOR            : std_logic_vector(2 downto 0) := "100";
     constant ALU_INV            : std_logic_vector(2 downto 0) := "101";
+    constant ALU_MUL            : std_logic_vector(2 downto 0) := "110";
 
     component calc_base_alu is
         port (
@@ -59,6 +60,25 @@ architecture rtl of calc_alu is
         );
     end component;
 
+    component calc_mult is
+        port (
+            clk                     : in std_logic;
+            resetn                  : in std_logic;
+
+            mult_s_tvalid           : in std_logic;
+            mult_s_tready           : out std_logic;
+            mult_s_tdata_a          : in std_logic_vector(11*4-1 downto 0);
+            mult_s_tdata_b          : in std_logic_vector(11*4-1 downto 0);
+
+            mult_m_tvalid           : out std_logic;
+            mult_m_tready           : in std_logic;
+            mult_m_tdata            : out std_logic_vector(11*4-1 downto 0);
+            mult_m_tuser_cb         : out std_logic;
+            mult_m_tuser_zf         : out std_logic;
+            mult_m_tuser_msn        : out std_logic_vector(3 downto 0)
+        );
+    end component;
+
     signal state : state_t;
 
     signal alu_req_tvalid       : std_logic;
@@ -71,18 +91,27 @@ architecture rtl of calc_alu is
     signal alu_res_tuser_cb     : std_logic;
     signal alu_res_tuser_zf     : std_logic;
     signal alu_res_tuser_msn    : std_logic_vector(3 downto 0);
+
     signal base_alu_s_tvalid    : std_logic;
     signal base_alu_s_tready    : std_logic;
     signal base_alu_s_tdata_a   : std_logic_vector(11*4-1 downto 0);
     signal base_alu_s_tdata_b   : std_logic_vector(11*4-1 downto 0);
     signal base_alu_s_tdata_op  : std_logic_vector(2 downto 0);
-
     signal base_alu_m_tvalid    : std_logic;
-    signal base_alu_m_tready    : std_logic;
     signal base_alu_m_tdata     : std_logic_vector(11*4-1 downto 0);
     signal base_alu_m_tuser_cb  : std_logic;
     signal base_alu_m_tuser_zf  : std_logic;
     signal base_alu_m_tuser_msn : std_logic_vector(3 downto 0);
+
+    signal mult_s_tvalid        : std_logic;
+    signal mult_s_tready        : std_logic;
+    signal mult_s_tdata_a       : std_logic_vector(11*4-1 downto 0);
+    signal mult_s_tdata_b       : std_logic_vector(11*4-1 downto 0);
+    signal mult_m_tvalid        : std_logic;
+    signal mult_m_tdata         : std_logic_vector(11*4-1 downto 0);
+    signal mult_m_tuser_cb      : std_logic;
+    signal mult_m_tuser_zf      : std_logic;
+    signal mult_m_tuser_msn     : std_logic_vector(3 downto 0);
 
     signal buf_tdata_op         : std_logic_vector(2 downto 0);
     signal buf_tdata_b          : std_logic_vector(11*4-1 downto 0);
@@ -92,20 +121,6 @@ architecture rtl of calc_alu is
     signal cor_tdata_a          : std_logic_vector(11*4-1 downto 0);
 
 begin
-
-    alu_req_tvalid <= alu_s_tvalid;
-    alu_s_tready <= alu_req_tready;
-
-    alu_m_tvalid <= alu_res_tvalid;
-    alu_res_tready <= alu_m_tready;
-    alu_m_tdata <= alu_res_tdata;
-    alu_m_tdata_sign <= alu_res_tdata_sign;
-    alu_m_tuser_cb <= alu_res_tuser_cb;
-    alu_m_tuser_msn <= alu_res_tuser_msn;
-    alu_m_tuser_zf <= alu_res_tuser_zf;
-
-    base_alu_m_tready <= '1';
-
 
     calc_base_alu_inst: calc_base_alu port map (
         clk                 => clk,
@@ -118,12 +133,41 @@ begin
         alu_s_tdata_op      => base_alu_s_tdata_op,
 
         alu_m_tvalid        => base_alu_m_tvalid,
-        alu_m_tready        => base_alu_m_tready,
+        alu_m_tready        => '1',
         alu_m_tdata         => base_alu_m_tdata,
         alu_m_tuser_cb      => base_alu_m_tuser_cb,
         alu_m_tuser_zf      => base_alu_m_tuser_zf,
         alu_m_tuser_msn     => base_alu_m_tuser_msn
     );
+
+
+    calc_mult_inst: calc_mult port map (
+        clk                 => clk,
+        resetn              => resetn,
+
+        mult_s_tvalid       => mult_s_tvalid,
+        mult_s_tready       => mult_s_tready,
+        mult_s_tdata_a      => mult_s_tdata_a,
+        mult_s_tdata_b      => mult_s_tdata_b,
+
+        mult_m_tvalid       => mult_m_tvalid,
+        mult_m_tready       => '1',
+        mult_m_tdata        => mult_m_tdata,
+        mult_m_tuser_cb     => mult_m_tuser_cb,
+        mult_m_tuser_zf     => mult_m_tuser_zf,
+        mult_m_tuser_msn    => mult_m_tuser_msn
+    );
+
+    alu_req_tvalid <= alu_s_tvalid;
+    alu_s_tready <= alu_req_tready;
+
+    alu_m_tvalid <= alu_res_tvalid;
+    alu_res_tready <= alu_m_tready;
+    alu_m_tdata <= alu_res_tdata;
+    alu_m_tdata_sign <= alu_res_tdata_sign;
+    alu_m_tuser_cb <= alu_res_tuser_cb;
+    alu_m_tuser_msn <= alu_res_tuser_msn;
+    alu_m_tuser_zf <= alu_res_tuser_zf;
 
 
     fsm_proc: process (clk) begin
@@ -139,22 +183,22 @@ begin
                         end if;
 
                     when ST_CORRECT_A =>
-                        if base_alu_m_tvalid = '1' and base_alu_m_tready = '1' then
+                        if base_alu_m_tvalid = '1' then
                             state <= ST_CORRECT_B;
                         end if;
 
                     when ST_CORRECT_B =>
-                        if base_alu_m_tvalid = '1' and base_alu_m_tready = '1' then
+                        if base_alu_m_tvalid = '1' then
                             state <= ST_CALC;
                         end if;
 
                     when ST_CALC =>
-                        if base_alu_m_tvalid = '1' and base_alu_m_tready = '1' then
+                        if (base_alu_m_tvalid = '1') or (mult_m_tvalid = '1') then
                             state <= ST_CORRECT_RES;
                         end if;
 
                     when ST_CORRECT_RES =>
-                        if base_alu_m_tvalid = '1' and base_alu_m_tready = '1' then
+                        if base_alu_m_tvalid = '1' then
                             state <= ST_DONE;
                         end if;
 
@@ -197,17 +241,24 @@ begin
 
     alu_loader_proc: process (clk) begin
         if rising_edge(clk) then
+
             if resetn = '0' then
                 base_alu_s_tvalid <= '0';
             else
 
                 if (state = ST_IDLE and alu_req_tvalid = '1' and alu_req_tready = '1') then
                     base_alu_s_tvalid <= '1';
-                elsif state = ST_CORRECT_A and base_alu_m_tvalid = '1' and base_alu_m_tready = '1' then
+                elsif state = ST_CORRECT_A and base_alu_m_tvalid = '1' then
                     base_alu_s_tvalid <= '1';
-                elsif state = ST_CORRECT_B and base_alu_m_tvalid = '1' and base_alu_m_tready = '1' then
-                    base_alu_s_tvalid <= '1';
-                elsif state = ST_CALC and base_alu_m_tvalid = '1' and base_alu_m_tready = '1' then
+                elsif state = ST_CORRECT_B and base_alu_m_tvalid = '1' then
+                    if (buf_tdata_op = ALU_ADD or buf_tdata_op = ALU_SUB or buf_tdata_op = ALU_AND or
+                        buf_tdata_op = ALU_OR or buf_tdata_op = ALU_XOR or buf_tdata_op = ALU_INV)
+                    then
+                        base_alu_s_tvalid <= '1';
+                    else
+                        base_alu_s_tvalid <= '0';
+                    end if;
+                elsif state = ST_CALC and ((base_alu_m_tvalid = '1') or (mult_m_tvalid = '1')) then
                     base_alu_s_tvalid <= '1';
                 elsif base_alu_s_tready = '1' then
                     base_alu_s_tvalid <= '0';
@@ -218,19 +269,26 @@ begin
             if (state = ST_IDLE and alu_req_tvalid = '1' and alu_req_tready = '1') then
                 -- load a
                 base_alu_s_tdata_op <= ALU_ADD;
-                if alu_s_tdata_a_sign = '1' then
+                if alu_s_tdata_a_sign = '1' and (buf_tdata_op = ALU_ADD or buf_tdata_op = ALU_AND or
+                    buf_tdata_op = ALU_OR or buf_tdata_op = ALU_XOR or
+                    buf_tdata_op = ALU_INV or buf_tdata_op = ALU_SUB)
+                then
                     base_alu_s_tdata_a <= not alu_s_tdata_a;
                 else
                     base_alu_s_tdata_a <= alu_s_tdata_a;
                 end if;
-                if alu_s_tdata_a_sign = '1' then
+
+                if alu_s_tdata_a_sign = '1' and (buf_tdata_op = ALU_ADD or buf_tdata_op = ALU_AND or
+                    buf_tdata_op = ALU_OR or buf_tdata_op = ALU_XOR or
+                    buf_tdata_op = ALU_INV or buf_tdata_op = ALU_SUB)
+                then
                     base_alu_s_tdata_b(11*4-1 downto 1) <= (others => '0');
                     base_alu_s_tdata_b(0) <= '1';
                 else
                     base_alu_s_tdata_b <= (others => '0');
                 end if;
 
-            elsif state = ST_CORRECT_A and base_alu_m_tvalid = '1' and base_alu_m_tready = '1' then
+            elsif state = ST_CORRECT_A and base_alu_m_tvalid = '1' then
                 -- load b
                 base_alu_s_tdata_op <= ALU_ADD;
 
@@ -253,7 +311,7 @@ begin
                     base_alu_s_tdata_b <= (others => '0');
                 end if;
 
-            elsif state = ST_CORRECT_B and base_alu_m_tvalid = '1' and base_alu_m_tready = '1' then
+            elsif state = ST_CORRECT_B and base_alu_m_tvalid = '1' then
                 -- load a and b
                 if (buf_tdata_op = ALU_ADD or buf_tdata_op = ALU_SUB) then
                     base_alu_s_tdata_op <= ALU_ADD;
@@ -264,7 +322,7 @@ begin
                 base_alu_s_tdata_a <= cor_tdata_a;
                 base_alu_s_tdata_b <= base_alu_m_tdata;
 
-            elsif state = ST_CALC and base_alu_m_tvalid = '1' and base_alu_m_tready = '1' then
+            elsif state = ST_CALC and base_alu_m_tvalid = '1' then
                 -- correct result
                 base_alu_s_tdata_op <= ALU_ADD;
 
@@ -280,11 +338,49 @@ begin
                 else
                     base_alu_s_tdata_b <= (others => '0');
                 end if;
+            elsif state = ST_CALC and mult_m_tvalid = '1' then
+                -- correct result
+                base_alu_s_tdata_op <= ALU_ADD;
 
+                if ((buf_tdata_op = ALU_ADD or buf_tdata_op = ALU_SUB) and mult_m_tdata(4*11-1) = '1') then
+                    base_alu_s_tdata_a <= not mult_m_tdata;
+                else
+                    base_alu_s_tdata_a <= mult_m_tdata;
+                end if;
+
+                if ((buf_tdata_op = ALU_ADD or buf_tdata_op = ALU_SUB) and mult_m_tdata(4*11-1) = '1') then
+                    base_alu_s_tdata_b(11*4-1 downto 1) <= (others => '0');
+                    base_alu_s_tdata_b(0) <= '1';
+                else
+                    base_alu_s_tdata_b <= (others => '0');
+                end if;
             end if;
 
         end if;
     end process;
+
+    mul_loader_proc: process (clk) begin
+        if rising_edge(clk) then
+            if (resetn = '0') then
+                mult_s_tvalid <= '0';
+            else
+                if state = ST_CORRECT_B and base_alu_m_tvalid = '1' then
+                    if (buf_tdata_op = ALU_MUL) then
+                        mult_s_tvalid <= '1';
+                    else
+                        mult_s_tvalid <= '0';
+                    end if;
+                elsif (mult_s_tready = '1') then
+                    mult_s_tvalid <= '0';
+                end if;
+            end if;
+
+            mult_s_tdata_a <= cor_tdata_a;
+            mult_s_tdata_b <= base_alu_m_tdata;
+
+        end if;
+    end process;
+
 
     alu_res_proc: process (clk) begin
         if rising_edge(clk) then
@@ -292,31 +388,38 @@ begin
             if resetn = '0' then
                 alu_res_tvalid <= '0';
             else
-                if state = ST_CORRECT_RES and base_alu_m_tvalid = '1' and base_alu_m_tready = '1' then
+                if state = ST_CORRECT_RES and base_alu_m_tvalid = '1' then
                     alu_res_tvalid <= '1';
                 elsif alu_res_tready = '1' then
                     alu_res_tvalid <= '0';
                 end if;
             end if;
 
-            if state = ST_CORRECT_A and base_alu_m_tvalid = '1' and base_alu_m_tready = '1' then
+            if state = ST_CORRECT_A and base_alu_m_tvalid = '1' then
                 -- save a
                 cor_tdata_a <= base_alu_m_tdata;
 
-            elsif state = ST_CORRECT_RES and base_alu_m_tvalid = '1' and base_alu_m_tready = '1' then
+            elsif state = ST_CORRECT_RES and base_alu_m_tvalid = '1' then
                 -- save result
                 alu_res_tdata <= base_alu_m_tdata;
             end if;
 
-            if (state = ST_CALC and base_alu_m_tvalid = '1' and base_alu_m_tready = '1') then
+            if (state = ST_CORRECT_RES and base_alu_m_tvalid = '1') then
+                alu_res_tuser_msn <= base_alu_m_tuser_msn;
+            end if;
+
+            if (state = ST_CALC and base_alu_m_tvalid = '1') then
                 if (buf_tdata_op = ALU_ADD or buf_tdata_op = ALU_SUB) then
                     alu_res_tdata_sign <= base_alu_m_tdata(11*4-1);
                 else
                     alu_res_tdata_sign <= '0';
                 end if;
-                alu_res_tuser_msn <= base_alu_m_tuser_msn;
                 alu_res_tuser_cb <= base_alu_m_tuser_cb;
                 alu_res_tuser_zf <= base_alu_m_tuser_zf;
+            elsif state = ST_CALC and mult_m_tvalid = '1' then
+                alu_res_tdata_sign <= not mult_m_tuser_zf and (buf_tdata_a_sign xor buf_tdata_b_sign);
+                alu_res_tuser_cb <= mult_m_tuser_cb;
+                alu_res_tuser_zf <= mult_m_tuser_zf;
             end if;
 
         end if;

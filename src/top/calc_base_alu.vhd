@@ -82,21 +82,21 @@ architecture rtl of calc_base_alu is
 
 begin
 
-    alu_tvalid <= alu_s_tvalid;
-    alu_s_tready <= alu_tready;
+    alu_tvalid      <= alu_s_tvalid;
+    alu_s_tready    <= alu_tready;
 
-    alu_m_tvalid <= alu_res_tvalid;
-    alu_res_tready <= alu_m_tready;
-    alu_m_tdata <= num_hex_to_slv(alu_res_tdata);
-    alu_m_tuser_cb <= '1' when alu_calc_tdata_cb = "00001" else '0';
-    alu_m_tuser_zf <= alu_res_tuser_zf;
+    alu_m_tvalid    <= alu_res_tvalid;
+    alu_res_tready  <= alu_m_tready;
+    alu_m_tdata     <= num_hex_to_slv(alu_res_tdata);
+    alu_m_tuser_cb  <= '1' when alu_calc_tdata_cb = "00001" else '0';
+    alu_m_tuser_zf  <= alu_res_tuser_zf;
     alu_m_tuser_msn <= alu_res_tuser_msn;
 
-    add_calc_tdata <= '0' & alu_calc_tdata_a + alu_calc_tdata_b + alu_calc_tdata_cb;
-    and_calc_tdata <= std_logic_vector(alu_calc_tdata_a) and std_logic_vector(alu_calc_tdata_b);
-    or_calc_tdata <= std_logic_vector(alu_calc_tdata_a) or std_logic_vector(alu_calc_tdata_b);
-    xor_calc_tdata <= std_logic_vector(alu_calc_tdata_a) xor std_logic_vector(alu_calc_tdata_b);
-    inv_calc_tdata <= not std_logic_vector(alu_calc_tdata_a);
+    add_calc_tdata  <= '0' & alu_calc_tdata_a + alu_calc_tdata_b + alu_calc_tdata_cb;
+    and_calc_tdata  <= std_logic_vector(alu_calc_tdata_a) and std_logic_vector(alu_calc_tdata_b);
+    or_calc_tdata   <= std_logic_vector(alu_calc_tdata_a) or std_logic_vector(alu_calc_tdata_b);
+    xor_calc_tdata  <= std_logic_vector(alu_calc_tdata_a) xor std_logic_vector(alu_calc_tdata_b);
+    inv_calc_tdata  <= not std_logic_vector(alu_calc_tdata_a);
 
     process (clk) begin
         if rising_edge(clk) then
@@ -133,7 +133,11 @@ begin
                 alu_calc_tvalid <= '0';
                 alu_loop_cnt <= 0;
             else
-                alu_calc_tvalid <= alu_loop_tvalid;
+                if (alu_loop_tvalid = '1') then
+                    alu_calc_tvalid <= '1';
+                else
+                    alu_calc_tvalid <= '0';
+                end if;
 
                 if (alu_loop_tvalid = '1') then
                     if (alu_loop_cnt = 10) then
@@ -197,41 +201,66 @@ begin
 
             if (alu_tvalid = '1' and alu_tready = '1') then
                 alu_res_tuser_zf <= '1';
-                alu_res_tuser_msn <= x"0";
             elsif (alu_calc_tvalid = '1' and alu_res_tuser_zf = '1') then
                 case alu_loop_op is
                     when ALU_AND =>
                         if and_calc_tdata /= x"0" then
                             alu_res_tuser_zf <= '0';
-                            alu_res_tuser_msn <= std_logic_vector(to_unsigned(alu_calc_cnt, 4));
                         end if;
 
                     when ALU_OR =>
                         if or_calc_tdata /= x"0" then
                             alu_res_tuser_zf <= '0';
-                            alu_res_tuser_msn <= std_logic_vector(to_unsigned(alu_calc_cnt, 4));
                         end if;
 
                     when ALU_XOR =>
                         if xor_calc_tdata /= x"0" then
                             alu_res_tuser_zf <= '0';
-                            alu_res_tuser_msn <= std_logic_vector(to_unsigned(alu_calc_cnt, 4));
                         end if;
 
                     when ALU_INV =>
                         if inv_calc_tdata /= x"0" then
                             alu_res_tuser_zf <= '0';
-                            alu_res_tuser_msn <= std_logic_vector(to_unsigned(alu_calc_cnt, 4));
                         end if;
 
                     when others =>
                         if add_calc_tdata(3 downto 0) /= x"0" then
                             alu_res_tuser_zf <= '0';
+                        end if;
+
+                end case;
+            end if;
+
+            if (alu_tvalid = '1' and alu_tready = '1') then
+                alu_res_tuser_msn <= x"0";
+            elsif (alu_calc_tvalid = '1') then
+                case alu_loop_op is
+                    when ALU_AND =>
+                        if and_calc_tdata /= x"0" then
+                            alu_res_tuser_msn <= std_logic_vector(to_unsigned(alu_calc_cnt, 4));
+                        end if;
+
+                    when ALU_OR =>
+                        if or_calc_tdata /= x"0" then
+                            alu_res_tuser_msn <= std_logic_vector(to_unsigned(alu_calc_cnt, 4));
+                        end if;
+
+                    when ALU_XOR =>
+                        if xor_calc_tdata /= x"0" then
+                            alu_res_tuser_msn <= std_logic_vector(to_unsigned(alu_calc_cnt, 4));
+                        end if;
+
+                    when ALU_INV =>
+                        if inv_calc_tdata /= x"0" then
+                            alu_res_tuser_msn <= std_logic_vector(to_unsigned(alu_calc_cnt, 4));
+                        end if;
+
+                    when others =>
+                        if add_calc_tdata(3 downto 0) /= x"0" then
                             alu_res_tuser_msn <= std_logic_vector(to_unsigned(alu_calc_cnt, 4));
                         end if;
 
                 end case;
-
             end if;
 
             if (alu_calc_tvalid = '1') then
@@ -246,7 +275,7 @@ begin
                         alu_res_tdata(alu_calc_cnt) <= xor_calc_tdata;
 
                     when ALU_INV =>
-                        alu_res_tdata(alu_calc_cnt) <=inv_calc_tdata;
+                        alu_res_tdata(alu_calc_cnt) <= inv_calc_tdata;
 
                     when others =>
                         alu_res_tdata(alu_calc_cnt) <= std_logic_vector(add_calc_tdata(3 downto 0));

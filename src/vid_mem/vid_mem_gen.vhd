@@ -136,9 +136,9 @@ architecture rtl of vid_mem_gen is
                 item.fg(R) := x"00";
                 item.fg(G) := x"00";
                 item.fg(B) := x"00";
-                item.bg(R) := x"00";
-                item.bg(G) := x"00";
-                item.bg(B) := x"00";
+                item.bg(R) := x"E0";
+                item.bg(G) := x"E0";
+                item.bg(B) := x"E0";
 
                 if (row = 1) then
                     if (col = 11) then
@@ -146,12 +146,12 @@ architecture rtl of vid_mem_gen is
                     else
                         item.glyph := std_logic_vector(to_unsigned(GL_NULL, 5));
                     end if;
-                    item.fg(R) := x"00";
+                    item.fg(R) := x"FF";
                     item.fg(G) := x"FF";
-                    item.fg(B) := x"00";
-                    item.bg(R) := x"80";
-                    item.bg(G) := x"80";
-                    item.bg(B) := x"80";
+                    item.fg(B) := x"FF";
+                    item.bg(R) := x"4C";
+                    item.bg(G) := x"4C";
+                    item.bg(B) := x"4C";
                 elsif (row = 3) then
                     if (col = 2) then
                         item.glyph := std_logic_vector(to_unsigned(GL_SHL, 5));
@@ -180,11 +180,11 @@ architecture rtl of vid_mem_gen is
                         item.bg(B) := x"33";
                     elsif (col=6 or col=7 or col=8 or col=9) then
                         item.fg(R) := x"00";
-                        item.fg(G) := x"FF";
+                        item.fg(G) := x"00";
                         item.fg(B) := x"00";
-                        item.bg(R) := x"00";
-                        item.bg(G) := x"00";
-                        item.bg(B) := x"00";
+                        item.bg(R) := x"E0";
+                        item.bg(G) := x"E0";
+                        item.bg(B) := x"E0";
                     end if;
 
                 elsif (row = 4) then
@@ -215,11 +215,11 @@ architecture rtl of vid_mem_gen is
                         item.bg(B) := x"33";
                     elsif (col=6 or col=7 or col=8 or col=9) then
                         item.fg(R) := x"00";
-                        item.fg(G) := x"FF";
+                        item.fg(G) := x"00";
                         item.fg(B) := x"00";
-                        item.bg(R) := x"00";
-                        item.bg(G) := x"00";
-                        item.bg(B) := x"00";
+                        item.bg(R) := x"E0";
+                        item.bg(G) := x"E0";
+                        item.bg(B) := x"E0";
                     end if;
 
                 elsif (row = 5) then
@@ -248,11 +248,11 @@ architecture rtl of vid_mem_gen is
                         item.bg(B) := x"33";
                     elsif (col=6 or col=7 or col=8 or col=9) then
                         item.fg(R) := x"00";
-                        item.fg(G) := x"FF";
+                        item.fg(G) := x"00";
                         item.fg(B) := x"00";
-                        item.bg(R) := x"00";
-                        item.bg(G) := x"00";
-                        item.bg(B) := x"00";
+                        item.bg(R) := x"E0";
+                        item.bg(G) := x"E0";
+                        item.bg(B) := x"E0";
                     end if;
 
                 elsif (row = 6) then
@@ -281,11 +281,11 @@ architecture rtl of vid_mem_gen is
                         item.bg(B) := x"33";
                     elsif (col=6 or col=7 or col=8 or col=9) then
                         item.fg(R) := x"00";
-                        item.fg(G) := x"FF";
+                        item.fg(G) := x"00";
                         item.fg(B) := x"00";
-                        item.bg(R) := x"00";
-                        item.bg(G) := x"00";
-                        item.bg(B) := x"00";
+                        item.bg(R) := x"E0";
+                        item.bg(G) := x"E0";
+                        item.bg(B) := x"E0";
                     end if;
 
                 end if;
@@ -536,15 +536,16 @@ begin
                 glyph_line_buf <= glyph_line;
                 colors3 <= colors2;
                 --5
-                if (x = 0 or y = 0) then
-                    pixel_tdata(R) <= x"00";
-                    pixel_tdata(G) <= x"FF";
-                    pixel_tdata(B) <= x"00";
-                elsif (x = MAX_H-1 or y = MAX_V-1) then
-                    pixel_tdata(R) <= x"00";
-                    pixel_tdata(G) <= x"FF";
-                    pixel_tdata(B) <= x"00";
-                elsif glyph_line_buf(glyph_dot_col_rev) = '1' then
+                -- if (x = 0 or y = 0) then
+                    -- pixel_tdata(R) <= x"00";
+                    -- pixel_tdata(G) <= x"FF";
+                    -- pixel_tdata(B) <= x"00";
+                -- elsif (x = MAX_H-1 or y = MAX_V-1) then
+                    -- pixel_tdata(R) <= x"00";
+                    -- pixel_tdata(G) <= x"FF";
+                    -- pixel_tdata(B) <= x"00";
+                -- els
+                if glyph_line_buf(glyph_dot_col_rev) = '1' then
                     pixel_tdata <= colors3.fg;
                 else
                     pixel_tdata <= colors3.bg;

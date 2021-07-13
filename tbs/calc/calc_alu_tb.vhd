@@ -14,6 +14,7 @@ architecture rtl of calc_alu_tb is
     constant ALU_OR             : std_logic_vector(2 downto 0) := "011";
     constant ALU_XOR            : std_logic_vector(2 downto 0) := "100";
     constant ALU_INV            : std_logic_vector(2 downto 0) := "101";
+    constant ALU_MUL            : std_logic_vector(2 downto 0) := "110";
 
     type test_t is record
         a                       : std_logic_vector(11*4-1 downto 0);
@@ -27,7 +28,7 @@ architecture rtl of calc_alu_tb is
 
     type a_list_t is array(0 to 2) of integer;
     type b_list_t is array(0 to 2) of integer;
-    type op_list_t is array(0 to 5) of std_logic_vector(2 downto 0);
+    type op_list_t is array(0 to 6) of std_logic_vector(2 downto 0);
 
     type test_list_t is array (0 to 100) of test_t;
 
@@ -129,19 +130,20 @@ begin
         begin
             tests_last_idx := 0;
             a_variants(0) := 0;
-            a_variants(1) := 1;
+            a_variants(1) := 32;
             a_variants(2) := -1;
 
             b_variants(0) := -1;
             b_variants(1) := 0;
             b_variants(2) := 1;
 
-            op_variants(0) := ALU_SUB;
+            op_variants(0) := ALU_MUL;
             op_variants(1) := ALU_ADD;
             op_variants(2) := ALU_AND;
             op_variants(3) := ALU_OR;
             op_variants(4) := ALU_XOR;
             op_variants(5) := ALU_INV;
+            op_variants(6) := ALU_SUB;
 
             for op_idx in op_variants'range loop
                 for a_idx in a_variants'range loop
@@ -177,6 +179,16 @@ begin
 
                             when ALU_SUB =>
                                 c := a_variants(a_idx) - b_variants(b_idx);
+                                if (c < 0) then
+                                    tests(tests_last_idx).c <= std_logic_vector(to_signed(-1 * c, 11*4));
+                                    tests(tests_last_idx).c_sign <= '1';
+                                else
+                                    tests(tests_last_idx).c <= std_logic_vector(to_signed(c, 11*4));
+                                    tests(tests_last_idx).c_sign <= '0';
+                                end if;
+
+                            when ALU_MUL =>
+                                c := a_variants(a_idx) * b_variants(b_idx);
                                 if (c < 0) then
                                     tests(tests_last_idx).c <= std_logic_vector(to_signed(-1 * c, 11*4));
                                     tests(tests_last_idx).c_sign <= '1';
