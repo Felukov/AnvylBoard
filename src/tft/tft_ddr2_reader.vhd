@@ -33,7 +33,7 @@ end entity tft_ddr2_reader;
 architecture rtl of tft_ddr2_reader is
     type fifo_vector_t is array(4 downto 0) of std_logic_vector(23 downto 0);
 
-    component tft_fifo is
+    component axis_fifo is
         port (
             clk                 : in std_logic;
             resetn              : in std_logic;
@@ -68,7 +68,7 @@ architecture rtl of tft_ddr2_reader is
     signal rd_data_idx          : integer range 0 to 4;
 begin
 
-    tft_fifo_inst : tft_fifo port map (
+    axis_fifo_inst : axis_fifo port map (
         clk            => clk,
         resetn         => resetn,
         fifo_s_tvalid  => rd_data_s_tvalid,

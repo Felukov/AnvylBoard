@@ -8,9 +8,12 @@ The main goals of the project is to implement a relatively simple but complete s
 
 The design icludes the following subcomponents that can be reused in the different projects:
 * Xilinx MIG DDR2 controller instantiation and access to data stored in DDR from different sources.
-* Video Controller (mostly rework of reference designs from Digilent)
+* TFT Controller (mostly rework of reference designs from Digilent)
 * Touch Screen Controller (communication with ADC via SPI and convertion of sampled data to XY coordinates)
 * OLED Controller (mostly rework of reference designs from Digilent)
 * DSP (wrappers with AXI-stream interfaces over DSP macros)
 * UART RX/TX support
-* Utilization components such as AXIS Register, Interconnect, Divider, Debouncers, Timers, etc
+* Handling of user input (buttons, keypads, touchscreen)
+* Common components such as AXI-stream Register, Interconnect, Divider, Debouncers, Timers, etc
+
+The design also includes some testbenches that were developed mostly for debug purposes. They mostly cover only straightway behaviour of the components.
