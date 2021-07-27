@@ -5,45 +5,47 @@ use ieee.numeric_std.all;
 use ieee.std_logic_unsigned.all;
 use unisim.vcomponents.all;
 
-entity tft_fifo is
+entity axis_fifo is
+    generic (
+        FIFO_DEPTH      : natural := 2**8;
+        FIFO_WIDTH      : natural := 128
+    );
     port (
         clk             : in std_logic;
         resetn          : in std_logic;
 
         fifo_s_tvalid   : in std_logic;
         fifo_s_tready   : out std_logic;
-        fifo_s_tdata    : in std_logic_vector(127 downto 0);
+        fifo_s_tdata    : in std_logic_vector(FIFO_WIDTH-1 downto 0);
 
         fifo_m_tvalid   : out std_logic;
         fifo_m_tready   : in std_logic;
-        fifo_m_tdata    : out std_logic_vector(127 downto 0)
+        fifo_m_tdata    : out std_logic_vector(FIFO_WIDTH-1 downto 0)
     );
-end entity tft_fifo;
+end entity axis_fifo;
 
-architecture rtl of tft_fifo is
+architecture rtl of axis_fifo is
 
-    constant FIFO_MAX_SIZE  : natural := 2**8;
+    type ram_t is array (FIFO_DEPTH-1 downto 0) of std_logic_vector(FIFO_WIDTH-1 downto 0);
 
-    type ram_t is array (FIFO_MAX_SIZE-1 downto 0) of std_logic_vector(127 downto 0);
-
-    signal wr_addr          : integer range 0 to FIFO_MAX_SIZE-1;
-    signal wr_addr_next     : integer range 0 to FIFO_MAX_SIZE-1;
-    signal rd_addr          : integer range 0 to FIFO_MAX_SIZE-1;
-    signal rd_addr_next     : integer range 0 to FIFO_MAX_SIZE-1;
+    signal wr_addr          : integer range 0 to FIFO_DEPTH-1;
+    signal wr_addr_next     : integer range 0 to FIFO_DEPTH-1;
+    signal rd_addr          : integer range 0 to FIFO_DEPTH-1;
+    signal rd_addr_next     : integer range 0 to FIFO_DEPTH-1;
     signal fifo_ram         : ram_t;
-    signal q_tdata          : std_logic_vector(127 downto 0);
+    signal q_tdata          : std_logic_vector(FIFO_WIDTH-1 downto 0);
 
     signal wr_data_tvalid   : std_logic;
     signal wr_data_tready   : std_logic;
-    signal wr_data_tdata    : std_logic_vector(127 downto 0);
+    signal wr_data_tdata    : std_logic_vector(FIFO_WIDTH-1 downto 0);
 
     signal data_tvalid      : std_logic;
     signal data_tready      : std_logic;
-    signal data_tdata       : std_logic_vector(127 downto 0);
+    signal data_tdata       : std_logic_vector(FIFO_WIDTH-1 downto 0);
 
     signal out_tvalid       : std_logic;
     signal out_tready       : std_logic;
-    signal out_tdata        : std_logic_vector(127 downto 0);
+    signal out_tdata        : std_logic_vector(FIFO_WIDTH-1 downto 0);
 
 begin
 
@@ -60,8 +62,8 @@ begin
     data_tvalid     <= '1' when wr_addr /= rd_addr else '0';
     data_tready     <= '1' when out_tvalid = '0' or (out_tvalid = '1' and out_tready = '1') else '0';
 
-    wr_addr_next    <= (wr_addr + 1) mod FIFO_MAX_SIZE;
-    rd_addr_next    <= (rd_addr + 1) mod FIFO_MAX_SIZE;
+    wr_addr_next    <= (wr_addr + 1) mod FIFO_DEPTH;
+    rd_addr_next    <= (rd_addr + 1) mod FIFO_DEPTH;
 
     q_tdata         <= fifo_ram(rd_addr);
 
