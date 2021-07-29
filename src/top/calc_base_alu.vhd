@@ -100,6 +100,7 @@ begin
 
     process (clk) begin
         if rising_edge(clk) then
+
             if resetn = '0' then
                 alu_tready <= '1';
                 alu_loop_tvalid <= '0';
@@ -117,13 +118,14 @@ begin
                     alu_loop_tvalid <= '0';
                 end if;
 
-                if (alu_tvalid = '1' and alu_tready = '1') then
-                    alu_loop_op <= alu_s_tdata_op;
-                    alu_loop_a_vec <= slv_to_num_hex(alu_s_tdata_a);
-                    alu_loop_b_vec <= slv_to_num_hex(alu_s_tdata_b);
-                end if;
-
             end if;
+
+            if (alu_tvalid = '1' and alu_tready = '1') then
+                alu_loop_op <= alu_s_tdata_op;
+                alu_loop_a_vec <= slv_to_num_hex(alu_s_tdata_a);
+                alu_loop_b_vec <= slv_to_num_hex(alu_s_tdata_b);
+            end if;
+
         end if;
     end process;
 
