@@ -53,6 +53,7 @@ architecture rtl of touch_event_gen is
     constant GL_EQ              : natural := 27;
     constant GL_BACK            : natural := 28;
     constant GL_NULL            : natural := 29;
+    constant GL_CLEAR           : natural := 30;
 
     constant SIZE_PER_SYMBOL_X  : positive := positive(round(real(3996.0/12)));
     constant SIZE_PER_SYMBOL_Y  : positive := positive(round(real(4096.0/8)));
@@ -107,11 +108,11 @@ architecture rtl of touch_event_gen is
 
     signal col                  : natural range 0 to 11;
     signal row                  : natural range 0 to 7;
-    signal glyph                : natural range 0 to 29;
+    signal glyph                : natural range 0 to 30;
 
     signal event_tvalid         : std_logic;
     signal event_cnt            : natural range 0 to 15;
-    signal event_glyph          : natural range 0 to 29;
+    signal event_glyph          : natural range 0 to 30;
 
     signal timer_cmd_tvalid     : std_logic;
     signal pulse_tvalid         : std_logic;
@@ -212,7 +213,7 @@ begin
                         when 7 => glyph <= GL_2;
                         when 8 => glyph <= GL_3;
                         when 9 => glyph <= GL_A;
-                        when 11 => glyph <= GL_BACK;
+                        when 11 => glyph <= GL_CLEAR;
                         when others => glyph <= GL_NULL;
                     end case;
                 when 4 =>
@@ -224,7 +225,7 @@ begin
                         when 7 => glyph <= GL_5;
                         when 8 => glyph <= GL_6;
                         when 9 => glyph <= GL_B;
-                        when 11 => glyph <= GL_EQ;
+                        when 11 => glyph <= GL_BACK;
                         when others => glyph <= GL_NULL;
                     end case;
                 when 5 =>
@@ -236,6 +237,7 @@ begin
                         when 7 => glyph <= GL_8;
                         when 8 => glyph <= GL_9;
                         when 9 => glyph <= GL_C;
+                        when 11 => glyph <= GL_EQ;
                         when others => glyph <= GL_NULL;
                     end case;
                 when 6 =>

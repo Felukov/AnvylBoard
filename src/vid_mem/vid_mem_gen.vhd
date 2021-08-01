@@ -168,7 +168,7 @@ architecture rtl of vid_mem_gen is
                     elsif (col = 9) then
                         item.glyph := std_logic_vector(to_unsigned(GL_A, 5));
                     elsif (col = 11) then
-                        item.glyph := std_logic_vector(to_unsigned(GL_BACK, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_C, 5));
                     end if;
 
                     if (col=2 or col=3 or col=4 or col=11) then
@@ -203,7 +203,7 @@ architecture rtl of vid_mem_gen is
                     elsif (col = 9) then
                         item.glyph := std_logic_vector(to_unsigned(GL_B, 5));
                     elsif (col = 11) then
-                        item.glyph := std_logic_vector(to_unsigned(GL_EQ, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_BACK, 5));
                     end if;
 
                     if (col=2 or col=3 or col=4 or col=11) then
@@ -237,9 +237,11 @@ architecture rtl of vid_mem_gen is
                         item.glyph := std_logic_vector(to_unsigned(GL_9, 5));
                     elsif (col = 9) then
                         item.glyph := std_logic_vector(to_unsigned(GL_C, 5));
+                    elsif (col = 11) then
+                        item.glyph := std_logic_vector(to_unsigned(GL_EQ, 5));
                     end if;
 
-                    if (col=2 or col=3 or col=4) then
+                    if (col=2 or col=3 or col=4 or col=11) then
                         item.fg(R) := x"FF";
                         item.fg(G) := x"FF";
                         item.fg(B) := x"FF";
