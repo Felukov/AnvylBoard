@@ -17,3 +17,5 @@ The design icludes the following subcomponents that can be reused in the differe
 * Common components such as AXI-stream Register, Interconnect, Divider, Debouncers, Timers, etc
 
 The design also includes some testbenches that were developed mostly for debug purposes. They mostly cover only straightway behaviour of the components.
+
+![Board](https://github.com/Felukov/AnvylBoard/blob/master/doc/IMG_2663.JPEG)
