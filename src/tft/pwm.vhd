@@ -44,7 +44,7 @@ begin
     variable
         PWMCntUp : boolean := true;
     begin
-       if rising_edge(CLK_I) then
+        if rising_edge(CLK_I) then
             if (RST_I='1') then
                 PWMCnt <= (others => '0');
             elsif (PWMCntEn='1') then
@@ -60,11 +60,10 @@ begin
     		elsif (PWMCnt = 2**C_PWM_RESOLUTION-1) then
     			PWMCntUp := false;
     		end if;
-       end if;
+        end if;
     end process;
 
-    output_process: process (CLK_I, RST_I)
-    begin
+    output_process: process (CLK_I) begin
     	if rising_edge(CLK_I) then
     		if PWMCnt < DUTY_FACTOR_I then
     			int_PWM <= '1';

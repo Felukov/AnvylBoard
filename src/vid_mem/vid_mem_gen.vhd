@@ -66,6 +66,7 @@ architecture rtl of vid_mem_gen is
     constant GL_EQ              : natural := 27;
     constant GL_BACK            : natural := 28;
     constant GL_NULL            : natural := 29;
+    constant GL_MOD             : natural := 30;
 
     type rgb_ch_t is (R, G, B);
     type rgb_t is array (rgb_ch_t) of std_logic_vector(7 downto 0);
@@ -88,7 +89,7 @@ architecture rtl of vid_mem_gen is
     component vid_mem_glyph is
         port (
             clk                 : in std_logic;
-            glyph_addr          : in std_logic_vector(9 downto 0);
+            glyph_addr          : in std_logic_vector(10 downto 0);
             glyph_line          : out std_logic_vector(39 downto 0)
         );
     end component;
@@ -261,7 +262,7 @@ architecture rtl of vid_mem_gen is
                     if (col = 2) then
                         item.glyph := std_logic_vector(to_unsigned(GL_NOT, 5));
                     elsif (col = 3) then
-                        item.glyph := std_logic_vector(to_unsigned(GL_XOR, 5));
+                        item.glyph := std_logic_vector(to_unsigned(GL_MOD, 5));
                     elsif (col = 4) then
                         item.glyph := std_logic_vector(to_unsigned(GL_DIV, 5));
                     elsif (col = 6) then
@@ -330,7 +331,7 @@ architecture rtl of vid_mem_gen is
     signal wr_fifo_cnt          : integer range 0 to 63;
     signal wr_reset_addr        : std_logic;
 
-    signal glyph_addr           : std_logic_vector(9 downto 0);
+    signal glyph_addr           : std_logic_vector(10 downto 0);
     signal glyph_line           : std_logic_vector(39 downto 0);
     signal glyph_line_buf       : std_logic_vector(39 downto 0);
     signal glyph_dot_col_rev    : natural range 0 to 39;
@@ -343,8 +344,8 @@ architecture rtl of vid_mem_gen is
     signal glyph_q              : std_logic_vector(55 downto 0);
     signal glyph_buf            : glyph_t;
 
-    signal addr_base            : natural range 0 to GLYPHS_CNT*34-1;
-    signal addr                 : natural range 0 to GLYPHS_CNT*34-1;
+    signal addr_base            : natural range 0 to 2**11-1;
+    signal addr                 : natural range 0 to 2**11-1;
 
     signal colors1              : colors_t;
     signal colors2              : colors_t;
@@ -377,7 +378,7 @@ begin
     wr_m_tdata      <= to_slv(wr_tdata);
     wr_m_taddr      <= std_logic_vector(to_unsigned(wr_taddr, 26));
 
-    glyph_addr      <= std_logic_vector(to_unsigned(addr, 10));
+    glyph_addr      <= std_logic_vector(to_unsigned(addr, 11));
 
     ddr_data_tready <= '1' when wr_tvalid = '0' or (wr_tvalid = '1' and wr_tready = '1') else '0';
     pixel_tready    <= '1' when ddr_data_tvalid = '0' or (ddr_data_tvalid = '1' and ddr_data_tready = '1') else '0';
