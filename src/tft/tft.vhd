@@ -17,11 +17,11 @@
 -- Additional Comments:
 --
 ----------------------------------------------------------------------------------
-library IEEE;
-library UNISIM;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
-use UNISIM.VComponents.all;
+library ieee;
+library unisim;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use unisim.vcomponents.all;
 
 entity tft is
     generic (
@@ -89,15 +89,15 @@ architecture Behavioral of tft is
 
     component pwm
         generic (
-            C_CLK_I_FREQUENCY               : natural;
+            C_CLK_FREQUENCY                 : natural;
             C_PWM_FREQUENCY                 : natural;
             C_PWM_RESOLUTION                : natural
         );
     	port (
-    		CLK_I                           : in std_logic;
-    		RST_I                           : in std_logic;
-            DUTY_FACTOR_I                   : in std_logic_vector (C_PWM_RESOLUTION-1 downto 0);
-    		PWM_O                           : out std_logic
+    		clk                             : in std_logic;
+    		rst                             : in std_logic;
+            duty_factor                     : in std_logic_vector (C_PWM_RESOLUTION-1 downto 0);
+    		pwm_o                           : out std_logic
         );
     end component;
 
@@ -192,14 +192,14 @@ begin
     );
 
     pwm_inst: pwm generic map (
-        C_CLK_I_FREQUENCY   => 100, -- in MHZ
+        C_CLK_FREQUENCY     => 100, -- in MHZ
         C_PWM_FREQUENCY     => 25_000, -- in Hz
         C_PWM_RESOLUTION    => 3
     ) port map (
-        CLK_I               => clk_100,
-        RST_I               => local_rst,
-        PWM_O               => pwm_backlight,
-        DUTY_FACTOR_I       => "111"
+        clk                 => clk_100,
+        rst                 => local_rst,
+        pwm_o               => pwm_backlight,
+        duty_factor         => "111"
     );
 
     tft_video_timing_gen_inst: tft_video_timing_gen port map(

@@ -39,9 +39,10 @@ architecture rtl of calc_alu is
     constant ALU_XOR            : std_logic_vector(3 downto 0) := "0100";
     constant ALU_INV            : std_logic_vector(3 downto 0) := "0101";
     constant ALU_MUL            : std_logic_vector(3 downto 0) := "0110";
-    constant ALU_DIV            : std_logic_vector(3 downto 0) := "0111";
     constant ALU_SHL            : std_logic_vector(3 downto 0) := "1000";
     constant ALU_SHR            : std_logic_vector(3 downto 0) := "1001";
+    constant ALU_DIV            : std_logic_vector(3 downto 0) := "1100";
+    constant ALU_MOD            : std_logic_vector(3 downto 0) := "1101";
 
     component calc_base_alu is
         port (
@@ -65,39 +66,59 @@ architecture rtl of calc_alu is
 
     component calc_mult is
         port (
-            clk                     : in std_logic;
-            resetn                  : in std_logic;
+            clk                 : in std_logic;
+            resetn              : in std_logic;
 
-            mult_s_tvalid           : in std_logic;
-            mult_s_tready           : out std_logic;
-            mult_s_tdata_a          : in std_logic_vector(11*4-1 downto 0);
-            mult_s_tdata_b          : in std_logic_vector(11*4-1 downto 0);
+            mult_s_tvalid       : in std_logic;
+            mult_s_tready       : out std_logic;
+            mult_s_tdata_a      : in std_logic_vector(11*4-1 downto 0);
+            mult_s_tdata_b      : in std_logic_vector(11*4-1 downto 0);
 
-            mult_m_tvalid           : out std_logic;
-            mult_m_tready           : in std_logic;
-            mult_m_tdata            : out std_logic_vector(11*4-1 downto 0);
-            mult_m_tuser_cb         : out std_logic;
-            mult_m_tuser_zf         : out std_logic;
-            mult_m_tuser_msn        : out std_logic_vector(3 downto 0)
+            mult_m_tvalid       : out std_logic;
+            mult_m_tready       : in std_logic;
+            mult_m_tdata        : out std_logic_vector(11*4-1 downto 0);
+            mult_m_tuser_cb     : out std_logic;
+            mult_m_tuser_zf     : out std_logic;
+            mult_m_tuser_msn    : out std_logic_vector(3 downto 0)
         );
     end component;
 
     component calc_shift is
         port (
-            clk                     : in std_logic;
-            resetn                  : in std_logic;
+            clk                 : in std_logic;
+            resetn              : in std_logic;
 
-            shift_s_tvalid          : in std_logic;
-            shift_s_tready          : out std_logic;
-            shift_s_tdata_val       : in std_logic_vector(11*4-1 downto 0);
-            shift_s_tdata_op        : in std_logic;
+            shift_s_tvalid      : in std_logic;
+            shift_s_tready      : out std_logic;
+            shift_s_tdata_val   : in std_logic_vector(11*4-1 downto 0);
+            shift_s_tdata_op    : in std_logic;
 
-            shift_m_tvalid          : out std_logic;
-            shift_m_tready          : in std_logic;
-            shift_m_tdata           : out std_logic_vector(11*4-1 downto 0);
-            shift_m_tuser_cb        : out std_logic;
-            shift_m_tuser_zf        : out std_logic;
-            shift_m_tuser_msn       : out std_logic_vector(3 downto 0)
+            shift_m_tvalid      : out std_logic;
+            shift_m_tready      : in std_logic;
+            shift_m_tdata       : out std_logic_vector(11*4-1 downto 0);
+            shift_m_tuser_cb    : out std_logic;
+            shift_m_tuser_zf    : out std_logic;
+            shift_m_tuser_msn   : out std_logic_vector(3 downto 0)
+        );
+    end component;
+
+    component calc_div is
+        port (
+            clk                 : in std_logic;
+            resetn              : in std_logic;
+
+            div_s_tvalid       : in std_logic;
+            div_s_tready       : out std_logic;
+            div_s_tdata_a      : in std_logic_vector(11*4-1 downto 0);
+            div_s_tdata_b      : in std_logic_vector(11*4-1 downto 0);
+            div_s_tdata_op    : in std_logic;
+
+            div_m_tvalid       : out std_logic;
+            div_m_tready       : in std_logic;
+            div_m_tdata        : out std_logic_vector(11*4-1 downto 0);
+            div_m_tuser_cb     : out std_logic;
+            div_m_tuser_zf     : out std_logic;
+            div_m_tuser_msn    : out std_logic_vector(3 downto 0)
         );
     end component;
 
@@ -134,6 +155,17 @@ architecture rtl of calc_alu is
     signal mult_m_tuser_cb      : std_logic;
     signal mult_m_tuser_zf      : std_logic;
     signal mult_m_tuser_msn     : std_logic_vector(3 downto 0);
+
+    signal div_s_tvalid         : std_logic;
+    signal div_s_tready         : std_logic;
+    signal div_s_tdata_a        : std_logic_vector(11*4-1 downto 0);
+    signal div_s_tdata_b        : std_logic_vector(11*4-1 downto 0);
+    signal div_s_tdata_op       : std_logic;
+    signal div_m_tvalid         : std_logic;
+    signal div_m_tdata          : std_logic_vector(11*4-1 downto 0);
+    signal div_m_tuser_cb       : std_logic;
+    signal div_m_tuser_zf       : std_logic;
+    signal div_m_tuser_msn      : std_logic_vector(3 downto 0);
 
     signal shift_s_tvalid       : std_logic;
     signal shift_s_tready       : std_logic;
@@ -190,6 +222,7 @@ begin
         mult_m_tuser_msn    => mult_m_tuser_msn
     );
 
+
     calc_shift_inst: calc_shift port map (
         clk                 => clk,
         resetn              => resetn,
@@ -206,6 +239,26 @@ begin
         shift_m_tuser_zf    => shift_m_tuser_zf,
         shift_m_tuser_msn   => shift_m_tuser_msn
     );
+
+
+    calc_div_inst: calc_div port map (
+        clk                 => clk,
+        resetn              => resetn,
+
+        div_s_tvalid        => div_s_tvalid,
+        div_s_tready        => div_s_tready,
+        div_s_tdata_a       => div_s_tdata_a,
+        div_s_tdata_b       => div_s_tdata_b,
+        div_s_tdata_op      => div_s_tdata_op,
+
+        div_m_tvalid        => div_m_tvalid,
+        div_m_tready        => '1',
+        div_m_tdata         => div_m_tdata,
+        div_m_tuser_cb      => div_m_tuser_cb,
+        div_m_tuser_zf      => div_m_tuser_zf,
+        div_m_tuser_msn     => div_m_tuser_msn
+    );
+
 
     alu_req_tvalid <= alu_s_tvalid;
     alu_s_tready <= alu_req_tready;
@@ -242,7 +295,7 @@ begin
                         end if;
 
                     when ST_CALC =>
-                        if (base_alu_m_tvalid = '1' or mult_m_tvalid = '1' or shift_m_tvalid = '1') then
+                        if (base_alu_m_tvalid = '1' or mult_m_tvalid = '1' or shift_m_tvalid = '1' or div_m_tvalid = '1') then
                             state <= ST_CORRECT_RES;
                         end if;
 
@@ -307,7 +360,7 @@ begin
                     else
                         base_alu_s_tvalid <= '0';
                     end if;
-                elsif state = ST_CALC and (base_alu_m_tvalid = '1' or mult_m_tvalid = '1' or shift_m_tvalid = '1') then
+                elsif state = ST_CALC and (base_alu_m_tvalid = '1' or mult_m_tvalid = '1' or shift_m_tvalid = '1' or div_m_tvalid = '1') then
                     base_alu_s_tvalid <= '1';
                 elsif base_alu_s_tready = '1' then
                     base_alu_s_tvalid <= '0';
@@ -403,6 +456,21 @@ begin
                 else
                     base_alu_s_tdata_b <= (others => '0');
                 end if;
+            elsif state = ST_CALC and div_m_tvalid = '1' then
+                base_alu_s_tdata_op <= ALU_ADD(2 downto 0);
+
+                if (div_m_tdata(4*11-1) = '1') then
+                    base_alu_s_tdata_a <= not div_m_tdata;
+                else
+                    base_alu_s_tdata_a <= div_m_tdata;
+                end if;
+
+                if (div_m_tdata(4*11-1) = '1') then
+                    base_alu_s_tdata_b(11*4-1 downto 1) <= (others => '0');
+                    base_alu_s_tdata_b(0) <= '1';
+                else
+                    base_alu_s_tdata_b <= (others => '0');
+                end if;
             elsif state = ST_CALC and shift_m_tvalid = '1' then
                 base_alu_s_tdata_op <= ALU_ADD(2 downto 0);
                 base_alu_s_tdata_a <= shift_m_tdata;
@@ -434,6 +502,34 @@ begin
         end if;
     end process;
 
+    div_loader_proc: process (clk) begin
+        if rising_edge(clk) then
+            if (resetn = '0') then
+                div_s_tvalid <= '0';
+            else
+                if state = ST_CORRECT_B and base_alu_m_tvalid = '1' then
+                    if (buf_tdata_op = ALU_DIV or buf_tdata_op = ALU_MOD) then
+                        div_s_tvalid <= '1';
+                    else
+                        div_s_tvalid <= '0';
+                    end if;
+                elsif (div_s_tready = '1') then
+                    div_s_tvalid <= '0';
+                end if;
+            end if;
+
+            div_s_tdata_a <= cor_tdata_a;
+            div_s_tdata_b <= base_alu_m_tdata;
+
+            if (buf_tdata_op = ALU_DIV) then
+                div_s_tdata_op <= '0';
+            else
+                div_s_tdata_op <= '1';
+            end if;
+
+        end if;
+    end process;
+
     shift_loader_proc: process (clk) begin
         if rising_edge(clk) then
             if resetn = '0' then
@@ -441,7 +537,7 @@ begin
             else
 
                 if state = ST_CORRECT_B and base_alu_m_tvalid = '1' then
-                    if (buf_tdata_op(3) = '1') then
+                    if (buf_tdata_op = ALU_SHL or buf_tdata_op = ALU_SHR) then
                         shift_s_tvalid <= '1';
                     else
                         shift_s_tvalid <= '0';
@@ -501,6 +597,10 @@ begin
                 alu_res_tdata_sign <= not mult_m_tuser_zf and (buf_tdata_a_sign xor buf_tdata_b_sign);
                 alu_res_tuser_cb <= mult_m_tuser_cb;
                 alu_res_tuser_zf <= mult_m_tuser_zf;
+            elsif state = ST_CALC and div_m_tvalid = '1' then
+                alu_res_tdata_sign <= not div_m_tuser_zf and (buf_tdata_a_sign xor buf_tdata_b_sign);
+                alu_res_tuser_cb <= div_m_tuser_cb;
+                alu_res_tuser_zf <= div_m_tuser_zf;
             end if;
 
         end if;

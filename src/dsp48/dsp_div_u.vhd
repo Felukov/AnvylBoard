@@ -42,6 +42,7 @@ architecture rtl of dsp_div_u is
     signal q                    : unsigned(MAX_WIDTH-1 downto 0);
     signal r                    : unsigned(MAX_WIDTH-1 downto 0);
     signal r2                   : unsigned(MAX_WIDTH-1 downto 0);
+    signal r3                   : unsigned(MAX_WIDTH-1 downto 0);
 
     signal i                    : natural range 0 to STEPS;
     signal idx                  : natural range 0 to STEPS-1;
@@ -62,15 +63,15 @@ architecture rtl of dsp_div_u is
             clk                 : in std_logic;
             resetn              : in std_logic;
 
-            addsub_s_tvalid    : in std_logic;
-            addsub_s_tready    : out std_logic;
-            addsub_s_tdata_a   : in std_logic_vector(47 downto 0);
-            addsub_s_tdata_b   : in std_logic_vector(47 downto 0);
-            addsub_s_tdata_op  : in std_logic;
+            addsub_s_tvalid     : in std_logic;
+            addsub_s_tready     : out std_logic;
+            addsub_s_tdata_a    : in std_logic_vector(47 downto 0);
+            addsub_s_tdata_b    : in std_logic_vector(47 downto 0);
+            addsub_s_tdata_op   : in std_logic;
 
-            addsub_m_tvalid    : out std_logic;
-            addsub_m_tready    : in std_logic;
-            addsub_m_tdata     : out std_logic_vector(47 downto 0)
+            addsub_m_tvalid     : out std_logic;
+            addsub_m_tready     : in std_logic;
+            addsub_m_tdata      : out std_logic_vector(47 downto 0)
         );
     end component;
 
@@ -151,17 +152,19 @@ begin
                 end if;
             end if;
 
+            r3 <= r2;
+
             if input_tvalid = '1' and input_tready = '1' then
                 n <= unsigned(input_tdata(2*MAX_WIDTH-1 downto MAX_WIDTH));
                 d <= unsigned(input_tdata(MAX_WIDTH-1 downto 0));
                 r <= (others => '0') ;
                 q <= (others => '0');
             elsif (addsub_m_tvalid = '1' and addsub_m_tready = '1') then
-                if (r2 >= d) then
+                if (r3 >= d) then
                     r <= unsigned(addsub_m_tdata);
                     q(idx) <= '1';
                 else
-                    r <= r2;
+                    r <= r3;
                     q(idx) <= '0';
                 end if;
 

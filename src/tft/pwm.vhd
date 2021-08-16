@@ -4,75 +4,75 @@ use IEEE.std_logic_unsigned.all;
 
 entity pwm is
     generic (
-		C_CLK_I_FREQUENCY : natural := 50; -- in MHZ
-		C_PWM_FREQUENCY   : natural := 20000; -- in Hz
-		C_PWM_RESOLUTION  : natural := 8
+		C_CLK_FREQUENCY     : natural := 50; -- in MHZ
+		C_PWM_FREQUENCY     : natural := 20000; -- in Hz
+		C_PWM_RESOLUTION    : natural := 8
 	);
     port (
-		CLK_I             : in STD_LOGIC;
-		RST_I             : in STD_LOGIC;
-        PWM_O             : out STD_LOGIC;
-        DUTY_FACTOR_I     : in STD_LOGIC_VECTOR (C_PWM_RESOLUTION-1 downto 0)
+		clk                 : in std_logic;
+		rst                 : in std_logic;
+        pwm_o               : out std_logic;
+        duty_factor         : in std_logic_vector (C_PWM_RESOLUTION-1 downto 0)
 	);
 end pwm;
 
 architecture Behavioral of pwm is
-    constant C_CLOCK_DIVIDER : natural := C_CLK_I_FREQUENCY*1_000_000/C_PWM_FREQUENCY/2/2**C_PWM_RESOLUTION;
+    constant C_CLOCK_DIVIDER : natural := C_CLK_FREQUENCY*1_000_000/C_PWM_FREQUENCY/2/2**C_PWM_RESOLUTION;
 
-    signal PWMCnt            : STD_LOGIC_VECTOR (C_PWM_RESOLUTION-1 downto 0) := (others => '0');
-    signal PWMCntEn          : std_logic;
-    signal int_PWM           : std_logic;
+    signal pwm_cnt          : std_logic_vector (C_PWM_RESOLUTION-1 downto 0) := (others => '0');
+    signal pwm_cnt_en       : std_logic;
+    signal int_pwm          : std_logic;
 
 begin
 
-    prescaler_process: process (CLK_I)
+    prescaler_process: process (clk)
     variable
-        PSCnt : natural range 0 to C_CLOCK_DIVIDER := 0;
+        ps_cnt : natural range 0 to C_CLOCK_DIVIDER := 0;
     begin
-        if rising_edge(CLK_I) then
-    		if (PSCnt = C_CLOCK_DIVIDER) then
-    			PSCnt := 0;
-    			PWMCntEn <= '1'; --enable pulse for PWM counter
+        if rising_edge(clk) then
+    		if (ps_cnt = C_CLOCK_DIVIDER) then
+    			ps_cnt := 0;
+    			pwm_cnt_en <= '1'; --enable pulse for PWM counter
     		else
-    			PSCnt := PSCnt + 1;
-    			PWMCntEn <= '0';
+    			ps_cnt := ps_cnt + 1;
+    			pwm_cnt_en <= '0';
     		end if;
         end if;
     end process;
 
-    updown_counter_process: process (CLK_I)
+    updown_counter_process: process (clk)
     variable
-        PWMCntUp : boolean := true;
+        pwm_cnt_up : boolean := true;
     begin
-        if rising_edge(CLK_I) then
-            if (RST_I='1') then
-                PWMCnt <= (others => '0');
-            elsif (PWMCntEn='1') then
-                if (PWMCntUp) then
-                    PWMCnt <= PWMCnt + 1;
+        if rising_edge(clk) then
+            if (rst = '1') then
+                pwm_cnt <= (others => '0');
+            elsif (pwm_cnt_en='1') then
+                if (pwm_cnt_up) then
+                    pwm_cnt <= pwm_cnt + 1;
                 else
-                    PWMCnt <= PWMCnt - 1;
+                    pwm_cnt <= pwm_cnt - 1;
                 end if;
             end if;
 
-    		if (PWMCnt = 0) then
-    			PWMCntUp := true;
-    		elsif (PWMCnt = 2**C_PWM_RESOLUTION-1) then
-    			PWMCntUp := false;
+    		if (pwm_cnt = 0) then
+    			pwm_cnt_up := true;
+    		elsif (pwm_cnt = 2**C_PWM_RESOLUTION-1) then
+    			pwm_cnt_up := false;
     		end if;
         end if;
     end process;
 
-    output_process: process (CLK_I) begin
-    	if rising_edge(CLK_I) then
-    		if PWMCnt < DUTY_FACTOR_I then
-    			int_PWM <= '1';
+    output_process: process (clk) begin
+    	if rising_edge(clk) then
+    		if pwm_cnt < duty_factor then
+    			int_pwm <= '1';
     		else
-    			int_PWM <= '0';
+    			int_pwm <= '0';
     		end if;
     	end if;
     end process;
 
-    PWM_O <= 'Z' when RST_I = '1' else int_PWM;
+    pwm_o <= 'Z' when rst = '1' else int_pwm;
 
 end Behavioral;

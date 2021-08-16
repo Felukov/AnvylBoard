@@ -1,10 +1,10 @@
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.STD_LOGIC_UNSIGNED.ALL;
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
 
 entity tft_video_timing_gen is
 	port (
-        clk          : in std_logic; --variable depending on RSEL_I
+        clk          : in std_logic;
         clk_en       : in std_logic;
         rst          : in std_logic; --reset
         vde          : out std_logic; --data enable for pixel bus

@@ -255,8 +255,16 @@ begin
 
             if (tests(div_m_hs_cnt).d /= x"000000000000" and div_m_tdata(95 downto 48) /= tests(div_m_hs_cnt).q) then
                 report "Test " & integer'image(div_m_hs_cnt) & " failed " &
-                    "div_m_tdata = " & to_string(div_m_tdata(95 downto 48)) & " " &
+                    "div_m_tdata(q) = " & to_string(div_m_tdata(95 downto 48)) & " " &
                     "expected = " & to_string(tests(div_m_hs_cnt).q) severity error;
+            elsif (tests(div_m_hs_cnt).d /= x"000000000000" and div_m_tdata(47 downto 0) /= tests(div_m_hs_cnt).r) then
+                report "Test " & integer'image(div_m_hs_cnt) & " failed " &
+                    "div_m_tdata(r) = " & to_string(div_m_tdata(47 downto 0)) & " " &
+                    "expected = " & to_string(tests(div_m_hs_cnt).r) severity error;
+            elsif (tests(div_m_hs_cnt).d /= x"000000000000" and div_m_tuser(47 downto 0) /= tests(div_m_hs_cnt).d) then
+                report "Test " & integer'image(div_m_hs_cnt) & " failed " &
+                    "div_m_tdata(d) = " & to_string(div_m_tuser(47 downto 0)) & " " &
+                    "expected = " & to_string(tests(div_m_hs_cnt).d) severity error;
             else
                 report "Test " & integer'image(div_m_hs_cnt) & " is ok " severity note;
             end if;

@@ -54,6 +54,7 @@ architecture rtl of touch_event_gen is
     constant GL_BACK            : natural := 28;
     constant GL_NULL            : natural := 29;
     constant GL_CLEAR           : natural := 30;
+    constant GL_MOD             : natural := 31;
 
     constant SIZE_PER_SYMBOL_X  : positive := positive(round(real(3996.0/12)));
     constant SIZE_PER_SYMBOL_Y  : positive := positive(round(real(4096.0/8)));
@@ -108,11 +109,11 @@ architecture rtl of touch_event_gen is
 
     signal col                  : natural range 0 to 11;
     signal row                  : natural range 0 to 7;
-    signal glyph                : natural range 0 to 30;
+    signal glyph                : natural range 0 to 31;
 
     signal event_tvalid         : std_logic;
     signal event_cnt            : natural range 0 to 15;
-    signal event_glyph          : natural range 0 to 30;
+    signal event_glyph          : natural range 0 to 31;
 
     signal timer_cmd_tvalid     : std_logic;
     signal pulse_tvalid         : std_logic;
@@ -243,7 +244,7 @@ begin
                 when 6 =>
                     case col is
                         when 2 => glyph <= GL_NOT;
-                        when 3 => glyph <= GL_XOR;
+                        when 3 => glyph <= GL_MOD;
                         when 4 => glyph <= GL_DIV;
                         when 6 => glyph <= GL_0;
                         when 7 => glyph <= GL_F;
