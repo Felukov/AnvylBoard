@@ -5,34 +5,32 @@ use ieee.numeric_std.all;
 use unisim.vcomponents.all;
 use ieee.std_logic_unsigned.all;
 
-entity calc_shift is
+entity calc_not is
     port (
         clk                     : in std_logic;
         resetn                  : in std_logic;
 
-        shift_s_tvalid          : in std_logic;
-        shift_s_tready          : out std_logic;
-        shift_s_tdata_val       : in std_logic_vector(11*4-1 downto 0);
-        shift_s_tdata_op        : in std_logic;
+        not_s_tvalid            : in std_logic;
+        not_s_tready            : out std_logic;
+        not_s_tdata_val         : in std_logic_vector(11*4-1 downto 0);
 
-        shift_m_tvalid          : out std_logic;
-        shift_m_tready          : in std_logic;
-        shift_m_tdata           : out std_logic_vector(11*4-1 downto 0);
-        shift_m_tuser_cb        : out std_logic;
-        shift_m_tuser_zf        : out std_logic;
-        shift_m_tuser_msn       : out std_logic_vector(3 downto 0)
+        not_m_tvalid            : out std_logic;
+        not_m_tready            : in std_logic;
+        not_m_tdata             : out std_logic_vector(11*4-1 downto 0);
+        not_m_tuser_cb          : out std_logic;
+        not_m_tuser_zf          : out std_logic;
+        not_m_tuser_msn         : out std_logic_vector(3 downto 0)
     );
-end entity calc_shift;
+end entity calc_not;
 
-architecture rtl of calc_shift is
+architecture rtl of calc_not is
     type num_hex_t is array (natural range 0 to 10) of std_logic_vector(3 downto 0);
 
     signal req_tvalid           : std_logic;
     signal req_tready           : std_logic;
     signal req_tdata            : std_logic_vector(11*4-1 downto 0);
 
-    signal shift_l              : std_logic_vector(11*4-1 downto 0);
-    signal shift_r              : std_logic_vector(11*4-1 downto 0);
+    signal req_tdata_inv        : std_logic_vector(11*4-1 downto 0);
 
     signal loop_tvalid          : std_logic;
     signal loop_tdata           : num_hex_t;
@@ -64,19 +62,18 @@ architecture rtl of calc_shift is
 
 begin
 
-    req_tvalid        <= shift_s_tvalid;
-    shift_s_tready    <= req_tready;
-    req_tdata         <= shift_s_tdata_val;
+    req_tvalid      <= not_s_tvalid;
+    not_s_tready    <= req_tready;
+    req_tdata       <= not_s_tdata_val;
 
-    shift_m_tvalid    <= res_tvalid;
-    res_tready        <= shift_m_tready;
-    shift_m_tdata     <= num_hex_to_slv(res_tdata);
-    shift_m_tuser_cb  <= '0';
-    shift_m_tuser_zf  <= res_tuser_zf;
-    shift_m_tuser_msn <= res_tuser_msn;
+    not_m_tvalid    <= res_tvalid;
+    res_tready      <= not_m_tready;
+    not_m_tdata     <= num_hex_to_slv(res_tdata);
+    not_m_tuser_cb  <= '0';
+    not_m_tuser_zf  <= res_tuser_zf;
+    not_m_tuser_msn <= res_tuser_msn;
 
-    shift_l           <= req_tdata(11*4-2 downto 0) & '0';
-    shift_r           <= '0' & req_tdata(11*4-1 downto 1);
+    req_tdata_inv     <= not req_tdata;
 
     process (clk) begin
         if rising_edge(clk) then
@@ -101,11 +98,7 @@ begin
             end if;
 
             if (req_tvalid = '1' and req_tready = '1') then
-                if (shift_s_tdata_op = '0') then
-                    loop_tdata <= slv_to_num_hex(shift_l);
-                else
-                    loop_tdata <= slv_to_num_hex(shift_r);
-                end if;
+                loop_tdata <= slv_to_num_hex(req_tdata_inv);
             end if;
 
         end if;
@@ -113,6 +106,7 @@ begin
 
     process (clk) begin
         if rising_edge(clk) then
+
             if resetn = '0' then
                 loop_cnt <= 0;
                 res_tvalid <= '0';

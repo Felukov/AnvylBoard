@@ -43,6 +43,7 @@ architecture rtl of calc_alu is
     constant ALU_SHR            : std_logic_vector(3 downto 0) := "1001";
     constant ALU_DIV            : std_logic_vector(3 downto 0) := "1100";
     constant ALU_MOD            : std_logic_vector(3 downto 0) := "1101";
+    constant ALU_NOT            : std_logic_vector(3 downto 0) := "1110";
 
     component calc_base_alu is
         port (
@@ -102,23 +103,41 @@ architecture rtl of calc_alu is
         );
     end component;
 
+    component calc_not is
+        port (
+            clk                 : in std_logic;
+            resetn              : in std_logic;
+
+            not_s_tvalid        : in std_logic;
+            not_s_tready        : out std_logic;
+            not_s_tdata_val     : in std_logic_vector(11*4-1 downto 0);
+
+            not_m_tvalid        : out std_logic;
+            not_m_tready        : in std_logic;
+            not_m_tdata         : out std_logic_vector(11*4-1 downto 0);
+            not_m_tuser_cb      : out std_logic;
+            not_m_tuser_zf      : out std_logic;
+            not_m_tuser_msn     : out std_logic_vector(3 downto 0)
+        );
+    end component;
+
     component calc_div is
         port (
             clk                 : in std_logic;
             resetn              : in std_logic;
 
-            div_s_tvalid       : in std_logic;
-            div_s_tready       : out std_logic;
-            div_s_tdata_a      : in std_logic_vector(11*4-1 downto 0);
-            div_s_tdata_b      : in std_logic_vector(11*4-1 downto 0);
-            div_s_tdata_op    : in std_logic;
+            div_s_tvalid        : in std_logic;
+            div_s_tready        : out std_logic;
+            div_s_tdata_a       : in std_logic_vector(11*4-1 downto 0);
+            div_s_tdata_b       : in std_logic_vector(11*4-1 downto 0);
+            div_s_tdata_op      : in std_logic;
 
-            div_m_tvalid       : out std_logic;
-            div_m_tready       : in std_logic;
-            div_m_tdata        : out std_logic_vector(11*4-1 downto 0);
-            div_m_tuser_cb     : out std_logic;
-            div_m_tuser_zf     : out std_logic;
-            div_m_tuser_msn    : out std_logic_vector(3 downto 0)
+            div_m_tvalid        : out std_logic;
+            div_m_tready        : in std_logic;
+            div_m_tdata         : out std_logic_vector(11*4-1 downto 0);
+            div_m_tuser_cb      : out std_logic;
+            div_m_tuser_zf      : out std_logic;
+            div_m_tuser_msn     : out std_logic_vector(3 downto 0)
         );
     end component;
 
@@ -176,6 +195,15 @@ architecture rtl of calc_alu is
     signal shift_m_tuser_cb     : std_logic;
     signal shift_m_tuser_zf     : std_logic;
     signal shift_m_tuser_msn    : std_logic_vector(3 downto 0);
+
+    signal not_s_tvalid         : std_logic;
+    signal not_s_tready         : std_logic;
+    signal not_s_tdata_val      : std_logic_vector(11*4-1 downto 0);
+    signal not_m_tvalid         : std_logic;
+    signal not_m_tdata          : std_logic_vector(11*4-1 downto 0);
+    signal not_m_tuser_cb       : std_logic;
+    signal not_m_tuser_zf       : std_logic;
+    signal not_m_tuser_msn      : std_logic_vector(3 downto 0);
 
     signal buf_tdata_op         : std_logic_vector(3 downto 0);
     signal buf_tdata_b          : std_logic_vector(11*4-1 downto 0);
@@ -241,6 +269,23 @@ begin
     );
 
 
+    calc_not_inst: calc_not port map (
+        clk                 => clk,
+        resetn              => resetn,
+
+        not_s_tvalid        => not_s_tvalid,
+        not_s_tready        => not_s_tready,
+        not_s_tdata_val     => not_s_tdata_val,
+
+        not_m_tvalid        => not_m_tvalid,
+        not_m_tready        => '1',
+        not_m_tdata         => not_m_tdata,
+        not_m_tuser_cb      => not_m_tuser_cb,
+        not_m_tuser_zf      => not_m_tuser_zf,
+        not_m_tuser_msn     => not_m_tuser_msn
+    );
+
+
     calc_div_inst: calc_div port map (
         clk                 => clk,
         resetn              => resetn,
@@ -295,7 +340,7 @@ begin
                         end if;
 
                     when ST_CALC =>
-                        if (base_alu_m_tvalid = '1' or mult_m_tvalid = '1' or shift_m_tvalid = '1' or div_m_tvalid = '1') then
+                        if (base_alu_m_tvalid = '1' or mult_m_tvalid = '1' or shift_m_tvalid = '1' or div_m_tvalid = '1' or not_m_tvalid = '1') then
                             state <= ST_CORRECT_RES;
                         end if;
 
@@ -360,7 +405,7 @@ begin
                     else
                         base_alu_s_tvalid <= '0';
                     end if;
-                elsif state = ST_CALC and (base_alu_m_tvalid = '1' or mult_m_tvalid = '1' or shift_m_tvalid = '1' or div_m_tvalid = '1') then
+                elsif state = ST_CALC and (base_alu_m_tvalid = '1' or mult_m_tvalid = '1' or shift_m_tvalid = '1' or div_m_tvalid = '1' or not_m_tvalid = '1') then
                     base_alu_s_tvalid <= '1';
                 elsif base_alu_s_tready = '1' then
                     base_alu_s_tvalid <= '0';
@@ -471,6 +516,10 @@ begin
                 else
                     base_alu_s_tdata_b <= (others => '0');
                 end if;
+            elsif state = ST_CALC and not_m_tvalid = '1' then
+                base_alu_s_tdata_op <= ALU_ADD(2 downto 0);
+                base_alu_s_tdata_a <= not_m_tdata;
+                base_alu_s_tdata_b <= (others => '0');
             elsif state = ST_CALC and shift_m_tvalid = '1' then
                 base_alu_s_tdata_op <= ALU_ADD(2 downto 0);
                 base_alu_s_tdata_a <= shift_m_tdata;
@@ -554,6 +603,29 @@ begin
         end if;
     end process;
 
+    not_loader_proc: process (clk) begin
+        if rising_edge(clk) then
+            if resetn = '0' then
+                not_s_tvalid <= '0';
+            else
+
+                if state = ST_CORRECT_B and base_alu_m_tvalid = '1' then
+                    if (buf_tdata_op = ALU_NOT) then
+                        not_s_tvalid <= '1';
+                    else
+                        not_s_tvalid <= '0';
+                    end if;
+                elsif not_s_tready = '1' then
+                    not_s_tvalid <= '0';
+                end if;
+
+            end if;
+
+            not_s_tdata_val <= cor_tdata_a;
+
+        end if;
+    end process;
+
     alu_res_proc: process (clk) begin
         if rising_edge(clk) then
 
@@ -587,20 +659,30 @@ begin
                 else
                     alu_res_tdata_sign <= '0';
                 end if;
+
                 alu_res_tuser_cb <= base_alu_m_tuser_cb;
                 alu_res_tuser_zf <= base_alu_m_tuser_zf;
+
+            elsif state = ST_CALC and not_m_tvalid = '1' then
+                alu_res_tdata_sign <= '0';
+                alu_res_tuser_cb <= shift_m_tuser_cb;
+                alu_res_tuser_zf <= shift_m_tuser_zf;
+
             elsif state = ST_CALC and shift_m_tvalid = '1' then
                 alu_res_tdata_sign <= buf_tdata_a_sign;
                 alu_res_tuser_cb <= shift_m_tuser_cb;
                 alu_res_tuser_zf <= shift_m_tuser_zf;
+
             elsif state = ST_CALC and mult_m_tvalid = '1' then
                 alu_res_tdata_sign <= not mult_m_tuser_zf and (buf_tdata_a_sign xor buf_tdata_b_sign);
                 alu_res_tuser_cb <= mult_m_tuser_cb;
                 alu_res_tuser_zf <= mult_m_tuser_zf;
+
             elsif state = ST_CALC and div_m_tvalid = '1' then
                 alu_res_tdata_sign <= not div_m_tuser_zf and (buf_tdata_a_sign xor buf_tdata_b_sign);
                 alu_res_tuser_cb <= div_m_tuser_cb;
                 alu_res_tuser_zf <= div_m_tuser_zf;
+
             end if;
 
         end if;

@@ -82,7 +82,7 @@ architecture rtl of calc_ctrl is
     constant ALU_SHR        : std_logic_vector(3 downto 0) := "1001";
     constant ALU_DIV        : std_logic_vector(3 downto 0) := "1100";
     constant ALU_MOD        : std_logic_vector(3 downto 0) := "1101";
-
+    constant ALU_NOT        : std_logic_vector(3 downto 0) := "1110";
 
     constant NUM_START_POS  : natural := 12*2-1;
 
@@ -777,7 +777,7 @@ begin
                 if (event_tvalid = '1' and event_tready = '1') then
                     if (event_tuser = EVENT_TOUCH and
                         ((buffer_tvalid = '1' and event_tdata = GL_EQ) or
-                         (buffer_tvalid = '0' and (event_tdata = GL_SHL or event_tdata = GL_SHR))))
+                         (buffer_tvalid = '0' and (event_tdata = GL_SHL or event_tdata = GL_SHR or event_tdata = GL_NOT))))
                     then
                         alu_s_tvalid <= '1';
                     else
@@ -792,7 +792,6 @@ begin
             if (event_tvalid = '1' and event_tready = '1') then
 
                 if (buffer_tvalid = '1' and event_tuser = EVENT_TOUCH) then
-
                     if (event_tdata = GL_EQ) then
                         alu_s_tdata_a <= num_hex_to_slv(buffer_num_hex);
                         alu_s_tdata_a_sign <= buffer_num_hex_sign;
@@ -803,16 +802,21 @@ begin
                         alu_s_tdata_op <= buffer_op;
                     end if;
 
+                elsif (buffer_tvalid = '0' and event_tdata = GL_NOT) then
+                    alu_s_tdata_a <= num_hex_to_slv(active_num_hex);
+                    alu_s_tdata_a_sign <= active_num_hex_sign;
+                    alu_s_tdata_op <= ALU_NOT;
+
                 elsif (buffer_tvalid = '0' and event_tdata = GL_SHL) then
                     alu_s_tdata_a <= num_hex_to_slv(active_num_hex);
                     alu_s_tdata_a_sign <= active_num_hex_sign;
-
                     alu_s_tdata_op <= ALU_SHL;
+
                 elsif (buffer_tvalid = '0' and event_tdata = GL_SHR) then
                     alu_s_tdata_a <= num_hex_to_slv(active_num_hex);
                     alu_s_tdata_a_sign <= active_num_hex_sign;
-
                     alu_s_tdata_op <= ALU_SHR;
+
                 end if;
             end if;
 
