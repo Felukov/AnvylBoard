@@ -11,6 +11,8 @@ work.files = [
     './src/top/*.vhd',
     './src/tft/*.vhd',
     './src/touch/*.vhd',
+    './src/oled/*.vhd',
     './src/vid_mem/*.vhd',
+    './tbs/dsp48/*.vhd',
     './cpu/m68k_pkg.vhd'
 ]

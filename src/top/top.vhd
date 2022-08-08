@@ -246,11 +246,27 @@ architecture Behavioral of top is
 
     end component;
 
+    component uart_tx_logger is
+        port (
+            clk                         : in std_logic;
+            resetn                      : in std_logic;
+
+            log_s_tvalid                : in std_logic;
+            log_s_tready                : out std_logic;
+            log_s_tdata                 : in std_logic_vector(7 downto 0);
+
+            uart_tx_m_tvalid            : out std_logic;
+            uart_tx_m_tready            : in std_logic;
+            uart_tx_m_tdata             : out std_logic_vector(7 downto 0)
+        );
+    end component;
+
     component uart_tx is
         port (
             clk                         : in std_logic;
             resetn                      : in std_logic;
             tx_s_tvalid                 : in std_logic;
+            tx_s_tready                 : out std_logic;
             tx_s_tdata                  : in std_logic_vector(7 downto 0);
             tx                          : out std_logic
         );
@@ -453,6 +469,10 @@ architecture Behavioral of top is
     signal uart_tvalid                  : std_logic;
     signal uart_tdata                   : std_logic_vector(7 downto 0);
 
+    signal uart_tx_tvalid               : std_logic;
+    signal uart_tx_tready               : std_logic;
+    signal uart_tx_tdata                : std_logic_vector(7 downto 0);
+
     signal pulse_tvalid                 : std_logic;
     signal pulse1ms_tvalid              : std_logic;
 
@@ -644,8 +664,23 @@ begin
         resetn              => mem_calib_done,
 
         rx                  => uart_rx_buf(2),
+
         rx_m_tvalid         => uart_tvalid,
         rx_m_tdata          => uart_tdata
+    );
+
+
+    uart_tx_logger_inst : uart_tx_logger port map (
+        clk                 => mem_clk,
+        resetn              => mem_calib_done,
+
+        log_s_tvalid        => uart_tvalid,
+        log_s_tready        => open,
+        log_s_tdata         => uart_tdata,
+
+        uart_tx_m_tvalid    => uart_tx_tvalid,
+        uart_tx_m_tready    => uart_tx_tready,
+        uart_tx_m_tdata     => uart_tx_tdata
     );
 
 
@@ -653,8 +688,10 @@ begin
         clk                 => mem_clk,
         resetn              => mem_calib_done,
 
-        tx_s_tvalid         => uart_tvalid,
-        tx_s_tdata          => uart_tdata,
+        tx_s_tvalid         => uart_tx_tvalid,
+        tx_s_tready         => uart_tx_tready,
+        tx_s_tdata          => uart_tx_tdata,
+
         tx                  => RS232_UART_TX
     );
 

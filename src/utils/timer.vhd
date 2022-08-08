@@ -70,13 +70,14 @@ begin
                 else
                     pulse1ms_counter <= pulse1ms_counter + 1;
                 end if;
+
+                if (pulse1ms_counter = 99_999) then
+                    pulse1ms_tvalid <= '1';
+                else
+                    pulse1ms_tvalid <= '0';
+                end if;
             end if;
 
-            if (pulse1ms_counter = 99_999) then
-                pulse1ms_tvalid <= '1';
-            else
-                pulse1ms_tvalid <= '0';
-            end if;
         end if;
     end process;
 
@@ -92,25 +93,25 @@ begin
                     delay_tvalid <= '0';
                 end if;
 
-                if (cmd_tvalid = '1') then
-                    delay_max <= cmd_tdata;
-                    delay_one_hot <= cmd_tuser;
-                end if;
-
-                if (delay_tvalid = '1' and pulse1ms_tvalid = '1') then
-                    if (delay_max = delay_counter) then
-                        delay_counter <= 0;
-                    else
-                        delay_counter <= delay_counter + 1;
-                    end if;
-                end if;
-
                 if (delay_tvalid = '1' and pulse1ms_tvalid = '1' and delay_max = delay_counter) then
                     pulse_tvalid <= '1';
                 else
                     pulse_tvalid <= '0';
                 end if;
 
+            end if;
+
+            if (cmd_tvalid = '1') then
+                delay_max <= cmd_tdata;
+                delay_one_hot <= cmd_tuser;
+            end if;
+
+            if (delay_tvalid = '1' and pulse1ms_tvalid = '1') then
+                if (delay_max = delay_counter) then
+                    delay_counter <= 0;
+                else
+                    delay_counter <= delay_counter + 1;
+                end if;
             end if;
 
         end if;

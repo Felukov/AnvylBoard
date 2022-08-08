@@ -14,6 +14,7 @@ entity uart_tx is
         clk         : in std_logic;
         resetn      : in std_logic;
         tx_s_tvalid : in std_logic;
+        tx_s_tready : out std_logic;
         tx_s_tdata  : in std_logic_vector(7 downto 0);
         tx          : out std_logic
     );
@@ -39,9 +40,19 @@ begin
                 tx_state <= TX_IDLE;
                 tx_cnt <= 0;
                 tx_bit_cnt <= 0;
+                tx_s_tready <= '1';
             else
 
                 case tx_state is
+                    when TX_IDLE =>
+                        if (tx_s_tvalid = '1') then
+                            tx_state <= TX_START;
+                            tx_tdata <= tx_s_tdata;
+                            tx_s_tready <= '0';
+                            tx <= '0';
+                        end if;
+
+
                     when TX_START =>
                         if (tx_cnt = COUNTER_MAX-1) then
                             tx_cnt <= 0;
@@ -91,16 +102,10 @@ begin
 
                         if (tx_cnt = COUNTER_MAX-1) then
                             tx_state <= TX_IDLE;
+                            tx_s_tready <= '1';
                             tx <= '1';
                         end if;
 
-
-                    when others =>
-                        if (tx_s_tvalid = '1') then
-                            tx_state <= TX_START;
-                            tx_tdata <= tx_s_tdata;
-                            tx <= '0';
-                        end if;
 
                 end case;
 
